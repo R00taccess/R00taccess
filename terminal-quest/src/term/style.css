@@ -1,0 +1,149 @@
+/* Terminal Quest — classic green-on-black terminal aesthetics */
+
+:root {
+  --green: #00ff66;
+  --dim: #0a3d1a;
+  --amber: #ffcc00;
+  --red: #ff5555;
+  --bg: #000000;
+  --font: "Cascadia Mono", "Fira Code", "IBM Plex Mono", "DejaVu Sans Mono", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--green);
+  font-family: var(--font);
+  overflow: hidden;
+  user-select: none;
+}
+
+#titlebar {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(#0c1a10, #050a06);
+  border-bottom: 1px solid var(--dim);
+  padding: 0 10px;
+  -webkit-app-region: drag;
+  font-size: 12px;
+  color: #7dffb0;
+}
+.tb-controls { -webkit-app-region: no-drag; display: flex; gap: 6px; }
+.tb-controls button {
+  background: transparent;
+  border: 1px solid var(--dim);
+  color: #7dffb0;
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.tb-controls button:hover { background: var(--dim); }
+#btn-close:hover { background: #661111; border-color: var(--red); color: #ffbbbb; }
+
+#stage {
+  display: flex;
+  height: calc(100% - 30px - 24px);
+}
+
+#terminal-wrap {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* subtle CRT scanline + glow */
+#terminal-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0) 0px,
+    rgba(0,0,0,0) 2px,
+    rgba(0,20,8,0.25) 3px
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+}
+
+#screen {
+  height: 100%;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 1.35;
+  outline: none;
+  text-shadow: 0 0 3px rgba(0,255,102,0.35);
+  user-select: text;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dim) transparent;
+}
+#screen::-webkit-scrollbar { width: 10px; }
+#screen::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 5px; }
+
+.input-line { white-space: pre-wrap; word-break: break-word; }
+
+.cursor {
+  display: inline-block;
+  width: 8px;
+  height: 1.05em;
+  vertical-align: bottom;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: blink 1s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+#compendium {
+  width: 320px;
+  border-left: 1px solid var(--dim);
+  background: #030805;
+  padding: 12px 14px;
+  overflow-y: auto;
+  font-size: 12px;
+  color: #9effc4;
+}
+#compendium.hidden { display: none; }
+#compendium h2 { font-size: 14px; margin: 0 0 10px; color: var(--green); }
+#compendium h3 { font-size: 12px; margin: 14px 0 6px; color: var(--amber); border-bottom: 1px solid var(--dim); padding-bottom: 3px; }
+#compendium ul { list-style: none; margin: 0; padding: 0; }
+#compendium li { padding: 2px 0; }
+#compendium li code { color: var(--green); font-weight: 700; }
+#compendium li .desc { color: #6bbf8c; }
+.rank-box { background: #061109; border: 1px solid var(--dim); border-radius: 5px; padding: 8px; }
+#rank-name { font-weight: 700; color: var(--amber); font-size: 14px; }
+.xp-bar { height: 8px; background: #0a1a0f; border-radius: 4px; margin: 6px 0 4px; overflow: hidden; }
+#xp-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #00aa44, var(--green)); transition: width .4s; }
+#xp-label { font-size: 11px; color: #6bbf8c; }
+#level-box { margin-top: 10px; font-size: 12px; color: #9effc4; }
+#level-box .lv-name { color: var(--green); font-weight: 700; }
+.ach-locked { color: #4a6b57; }
+.ach-got { color: var(--amber); }
+.hint-foot { color: #4a6b57; margin-top: 16px; font-size: 11px; }
+.hint-foot code { color: #7dffb0; }
+
+#statusbar {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #030805;
+  border-top: 1px solid var(--dim);
+  padding: 0 12px;
+  font-size: 11px;
+  color: #6bbf8c;
+}
+#statusbar span b { color: var(--green); }
+#sb-rank { color: var(--amber); }
+.sb-tip { margin-left: auto; color: #4a6b57; }

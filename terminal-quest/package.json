@@ -1,0 +1,50 @@
+{
+  "name": "terminal-quest",
+  "productName": "Terminal Quest",
+  "version": "1.0.0",
+  "description": "Learn real Linux command-line skills through an immersive terminal adventure at OmniCorp.",
+  "main": "electron/main.js",
+  "author": "OmniCorp Interactive",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/smoke.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win nsis",
+    "dist:unpacked": "electron-builder --win dir"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.omnicorp.terminalquest",
+    "productName": "Terminal Quest",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "artifactName": "TerminalQuest-Setup-${version}.exe"
+    }
+  }
+}

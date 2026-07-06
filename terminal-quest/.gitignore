@@ -1,0 +1,9 @@
+node_modules/
+release/
+dist/
+build/
+installer/Output/
+.saves/
+*.log
+npm-debug.log*
+.DS_Store

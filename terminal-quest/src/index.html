@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+  <title>Terminal Quest — OmniCorp</title>
+  <link rel="stylesheet" href="term/style.css">
+</head>
+<body>
+  <div id="titlebar">
+    <span class="tb-title">● Terminal Quest — player@omnicorp</span>
+    <span class="tb-controls">
+      <button id="btn-compendium" title="Command Compendium (F1)">F1 ▸ Compendium</button>
+      <button id="btn-min" title="Minimize">—</button>
+      <button id="btn-max" title="Maximize">▢</button>
+      <button id="btn-close" title="Close">✕</button>
+    </span>
+  </div>
+
+  <div id="stage">
+    <div id="terminal-wrap">
+      <div id="screen" tabindex="0" spellcheck="false"></div>
+    </div>
+
+    <aside id="compendium" class="hidden">
+      <h2>Command Compendium</h2>
+      <div class="rank-box">
+        <div id="rank-name">Trainee</div>
+        <div class="xp-bar"><div id="xp-fill"></div></div>
+        <div id="xp-label">0 XP</div>
+      </div>
+      <div id="level-box"></div>
+      <h3>Commands learned</h3>
+      <ul id="cmd-list"></ul>
+      <h3>Achievements</h3>
+      <ul id="ach-list"></ul>
+      <p class="hint-foot">Type <code>man &lt;command&gt;</code> for full details. Press F1 to close.</p>
+    </aside>
+  </div>
+
+  <div id="statusbar">
+    <span id="sb-prompt">player@omnicorp</span>
+    <span id="sb-rank">Trainee</span>
+    <span id="sb-xp">0 XP</span>
+    <span id="sb-level">Level 1</span>
+    <span id="sb-clock">Mon 09:00</span>
+    <span class="sb-tip">Tab = complete · ↑↓ = history · F1 = compendium · type <b>help</b></span>
+  </div>
+
+  <script src="term/renderer.js"></script>
+</body>
+</html>
