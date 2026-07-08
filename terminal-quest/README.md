@@ -64,6 +64,13 @@ Or via Inno Setup: `npm run dist:unpacked` then compile
 | `resetlevel`   | rebuild the level if you broke something irreversibly     |
 | `F1`           | toggle the **Command Compendium** side panel              |
 
+**Beginner scaffolding.** Early levels (1–8) show a **suggestion bar** of
+ready-to-run command chips — tap one to auto-type it into the prompt (it doesn't
+run until you press Enter, so you always see what you're about to do). The
+hand-holding thins out level by level and disappears from level 9 on, where
+you're expected to reason it out yourself. New commands are announced as they're
+introduced, and boss levels get their own red-framed warning banner.
+
 Each level ends by capturing a **flag** — a secret token you find by using the
 level's commands correctly. Submit it with:
 

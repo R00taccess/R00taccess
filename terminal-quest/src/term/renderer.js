@@ -74,7 +74,7 @@ function scrollToBottom() { screen.scrollTop = screen.scrollHeight; }
 const game = new Game({ storage });
 game.history = history.slice();
 game.attachPrinter(writeRaw);
-game.onStateChange = refreshCompendium;
+game.onStateChange = () => { refreshCompendium(); refreshSuggestions(); };
 game.init();
 // keep renderer history and game history in sync
 game.history = history;
@@ -153,6 +153,7 @@ async function submitLine() {
     game.save();
     refreshCompendium();
     refreshStatus();
+    refreshSuggestions();
   }
   renderInputLine();
   screen.focus();
@@ -373,6 +374,34 @@ function refreshStatus() {
   document.title = `Terminal Quest — ${game.rank()} — Level ${lvl.id}`;
 }
 
+// ---- suggestion chips ------------------------------------------------------
+
+function refreshSuggestions() {
+  const bar = document.getElementById('suggestions');
+  const chips = document.getElementById('sug-chips');
+  const sug = game.finished ? [] : game.currentSuggestions();
+  chips.innerHTML = '';
+  if (!sug.length) { bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+  for (const s of sug) {
+    const chip = document.createElement('button');
+    chip.className = 'chip';
+    chip.type = 'button';
+    chip.innerHTML = escapeHtml(s.cmd) + (s.desc ? `<span class="chip-desc">${escapeHtml(s.desc)}</span>` : '');
+    chip.title = s.desc || s.cmd;
+    // Clicking auto-types the command into the input (does NOT run it), so the
+    // player sees exactly what they're about to execute and can edit it first.
+    chip.addEventListener('click', () => {
+      if (busy) return;
+      currentInput = s.cmd;
+      cursorPos = currentInput.length;
+      renderInputLine();
+      screen.focus();
+    });
+    chips.appendChild(chip);
+  }
+}
+
 // ---- window controls -------------------------------------------------------
 
 document.getElementById('btn-close').onclick = () => ipcRenderer.send('tq:window', 'close');
@@ -382,17 +411,29 @@ document.getElementById('btn-compendium').onclick = toggleCompendium;
 
 // ---- boot ------------------------------------------------------------------
 
-writeRaw('\x1b[1;32m');
-writeRaw([
-  '  ╔══════════════════════════════════════════════════════════════╗',
-  '  ║   T E R M I N A L   Q U E S T                                  ║',
-  '  ║   Learn real Linux, one puzzle at a time.  © OmniCorp          ║',
-  '  ╚══════════════════════════════════════════════════════════════╝'
-].join('\n') + '\n\x1b[0m');
-writeRaw('\x1b[90mType \x1b[0m\x1b[32mhelp\x1b[0m\x1b[90m for survival basics, \x1b[0m\x1b[32mmission\x1b[0m\x1b[90m for your current objective,\nand \x1b[0m\x1b[32mman <command>\x1b[0m\x1b[90m for any command. Press F1 for the Command Compendium.\x1b[0m\n');
-writeRaw('\x1b[90mYour progress is saved automatically. Welcome back if you\'ve played before.\x1b[0m\n\n');
+// figlet-style logo (green TERMINAL over cyan QUEST) + framed subtitle
+writeRaw('\x1b[1;32m' + [
+  " _____ ___ ___ __  __ ___ _  _   _   _   ",
+  "|_   _| __| _ \\  \\/  |_ _| \\| | /_\\ | |  ",
+  "  | | | _||   / |\\/| || || .` |/ _ \\| |__",
+  "  |_| |___|_|_\\_|  |_|___|_|\\_/_/ \\_\\____|"
+].join('\n') + '\x1b[0m\n');
+writeRaw('\x1b[1;36m' + [
+  "  ___ _   _ ___ ___ _____ ",
+  " / _ \\ | | | __/ __|_   _|",
+  "| (_) | |_| | _|\\__ \\ | |  ",
+  " \\__\\_\\\\___/|___|___/ |_|  "
+].join('\n') + '\x1b[0m' + '   \x1b[1;33mThe Linux Sysadmin RPG\x1b[0m\n');
+writeRaw('\x1b[32m  \u2554' + '\u2550'.repeat(60) + '\u2557\x1b[0m\n');
+writeRaw('\x1b[32m  \u2551\x1b[0m  \x1b[90mLearn real Linux, one puzzle at a time.\x1b[0m' + ' '.repeat(16) + '\x1b[32m\u2551\x1b[0m\n');
+writeRaw('\x1b[32m  \u2551\x1b[0m  \x1b[90m\u00a9 OmniCorp Junior Sysadmin Training Sim\x1b[0m' + ' '.repeat(15) + '\x1b[32m\u2551\x1b[0m\n');
+writeRaw('\x1b[32m  \u255a' + '\u2550'.repeat(60) + '\u255d\x1b[0m\n\n');
+writeRaw('\x1b[90m  Type \x1b[0m\x1b[1;32mhelp\x1b[0m\x1b[90m for basics \u00b7 \x1b[0m\x1b[1;32mmission\x1b[0m\x1b[90m for your objective \u00b7 \x1b[0m\x1b[1;32mman <cmd>\x1b[0m\x1b[90m for a manual.\x1b[0m\n');
+writeRaw('\x1b[90m  Tap a \x1b[0m\x1b[1;33mSUGGESTED\x1b[0m\x1b[90m chip below to auto-type a command \u00b7 \x1b[0m\x1b[1;32mF1\x1b[0m\x1b[90m opens the Compendium.\x1b[0m\n');
+writeRaw('\x1b[90m  Progress saves automatically \u2014 welcome back if you have played before.\x1b[0m\n\n');
 
 refreshStatus();
 refreshCompendium();
+refreshSuggestions();
 renderInputLine();
 screen.focus();

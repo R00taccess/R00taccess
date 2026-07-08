@@ -34,6 +34,57 @@ const ACHIEVEMENTS = {
   'root-wizard':         { name: 'Root Wizard', desc: 'Complete Terminal Quest.' }
 };
 
+// Beginner scaffolding: concrete command suggestions shown at level start and
+// as tappable chips. Hand-holding is heavy early and thins out, so by the time
+// suggestions stop (level 9+) the player is expected to reason unaided.
+const LEVEL_SUGGESTIONS = {
+  1: [
+    { cmd: 'whoami', desc: 'who am I logged in as?' },
+    { cmd: 'pwd', desc: 'which directory am I in?' },
+    { cmd: 'ls', desc: 'what files are here?' },
+    { cmd: 'cat welcome.txt', desc: 'read the onboarding note' }
+  ],
+  2: [
+    { cmd: 'cd /opt/maze', desc: 'enter the maze' },
+    { cmd: 'ls', desc: 'look around the room' },
+    { cmd: 'cat clue.txt', desc: 'read the note for the next step' },
+    { cmd: 'cd ..', desc: 'go back up one level' }
+  ],
+  3: [
+    { cmd: 'cd ~/project-falcon', desc: 'go into the messy folder' },
+    { cmd: 'ls -a', desc: 'see everything, incl. hidden junk' },
+    { cmd: 'mkdir src docs', desc: 'create the required folders' },
+    { cmd: 'touch README.md', desc: 'create the empty README' },
+    { cmd: 'rmdir old', desc: 'remove the empty old/ dir' }
+  ],
+  4: [
+    { cmd: 'cd ~/photos', desc: 'go to the archive' },
+    { cmd: 'cp evidence.jpg evidence.jpg.bak', desc: 'back up the precious file first' },
+    { cmd: 'mkdir 2026-01-03', desc: 'make a date folder (do all three)' },
+    { cmd: 'mv 2026-01-03_*.jpg 2026-01-03/', desc: 'file photos by date with a glob' }
+  ],
+  5: [
+    { cmd: 'tail -n 40 /var/log/billing.log', desc: 'outages show up near the end' },
+    { cmd: 'head /var/log/billing.log', desc: 'peek at the start' },
+    { cmd: 'less /var/log/billing.log', desc: 'page through it all' }
+  ],
+  6: [
+    { cmd: 'echo "STATUS: OK" > report.txt', desc: 'create the file (overwrite)' },
+    { cmd: 'echo "CHECKED-BY: player" >> report.txt', desc: 'append the 2nd line' },
+    { cmd: 'cat report.txt', desc: 'verify both lines' }
+  ],
+  7: [
+    { cmd: 'sort FILE | uniq -c', desc: 'count each unique line (sort first!)' },
+    { cmd: '... | sort -nr', desc: 'rank the counts, biggest on top' },
+    { cmd: '... | head -1', desc: 'keep just the champion' }
+  ],
+  8: [
+    { cmd: 'grep PATTERN FILE', desc: 'search one file' },
+    { cmd: 'grep -r PATTERN /dir', desc: 'search a whole tree' },
+    { cmd: 'grep -rn PATTERN /dir', desc: 'add line numbers' }
+  ]
+};
+
 class Game {
   constructor({ storage }) {
     this.storage = storage || { load: () => null, save: () => {} };
@@ -229,19 +280,69 @@ class Game {
       subject: `[Level ${lvl.id}] ${lvl.name}`,
       body: lvl.briefing
     });
-    const banner =
-      `\x1b[1;32m` +
-      `╔══════════════════════════════════════════════════════════════╗\n` +
-      `  LEVEL ${String(lvl.id).padEnd(2)} — ${lvl.name}\n` +
-      `╚══════════════════════════════════════════════════════════════╝\x1b[0m\n`;
-    this.print('\n' + banner);
+    this.print('\n' + this.levelBanner(lvl));
     if (lvl.commands && lvl.commands.length) {
-      this.print(`\x1b[36mNew tools: ${lvl.commands.join(', ')}   (try: man ${lvl.commands[0]})\x1b[0m\n`);
+      this.print(`\x1b[1;36m  ▸ NEW TOOLS:\x1b[0m \x1b[36m${lvl.commands.join('  ')}\x1b[0m   \x1b[90m(try: man ${lvl.commands.filter(c => /^[a-z]/.test(c))[0] || lvl.commands[0]})\x1b[0m\n`);
     }
-    this.print('\n' + lvl.briefing.trim() + '\n\n');
-    this.print('\x1b[90mCommands: mission (re-read) · tutorial (walkthrough) · hint (clue, costs XP)\x1b[0m\n\n');
+    this.print('\n' + this.colorBriefing(lvl.briefing.trim()) + '\n');
+    // Beginner levels teach with concrete, ready-to-run command suggestions.
+    const sug = this.currentSuggestions();
+    if (sug.length) {
+      this.print('\n\x1b[1;33m  ┌─ SUGGESTED COMMANDS ' + '─'.repeat(38) + '┐\x1b[0m\n');
+      this.print('\x1b[33m  │\x1b[0m \x1b[90mTap a chip below (or type these) to get going:\x1b[0m\n');
+      for (const s of sug) {
+        this.print(`\x1b[33m  │\x1b[0m   \x1b[1;32m${s.cmd.padEnd(34)}\x1b[0m \x1b[90m${s.desc || ''}\x1b[0m\n`);
+      }
+      this.print('\x1b[1;33m  └' + '─'.repeat(59) + '┘\x1b[0m\n');
+    }
+    this.print('\n\x1b[90m  mission\x1b[0m re-read · \x1b[90mtutorial\x1b[0m walkthrough · \x1b[90mhint\x1b[0m clue · \x1b[90mman <cmd>\x1b[0m manual · \x1b[90mF1\x1b[0m compendium\n\n');
     this.save();
     this.changed();
+  }
+
+  // A framed, coloured level banner in the spirit of classic terminal games.
+  levelBanner(lvl) {
+    const W = 60;
+    const isBoss = /boss/i.test(lvl.name);
+    const c = isBoss ? '1;31' : '1;32';   // red frame for boss levels
+    const accent = isBoss ? '1;33' : '1;36';
+    const title = `LEVEL ${lvl.id}`;
+    const name = lvl.name.replace(/^BOSS:\s*/i, '').replace(/^FINAL BOSS:\s*/i, '');
+    const tag = isBoss ? (/final/i.test(lvl.name) ? '☠  FINAL BOSS  ☠' : '⚠  BOSS FIGHT  ⚠') : '';
+    const top = `╔${'═'.repeat(W)}╗`;
+    const bot = `╚${'═'.repeat(W)}╝`;
+    const pad = (s) => {
+      // s may contain no ansi; center within W
+      const len = [...s].length;
+      const left = Math.max(0, Math.floor((W - len) / 2));
+      const right = Math.max(0, W - len - left);
+      return ' '.repeat(left) + s + ' '.repeat(right);
+    };
+    let out = `\x1b[${c}m${top}\x1b[0m\n`;
+    if (tag) out += `\x1b[${c}m║\x1b[0m\x1b[${accent}m${pad(tag)}\x1b[0m\x1b[${c}m║\x1b[0m\n`;
+    out += `\x1b[${c}m║\x1b[0m\x1b[1;37m${pad(title + ' — ' + name)}\x1b[0m\x1b[${c}m║\x1b[0m\n`;
+    out += `\x1b[${c}m${bot}\x1b[0m\n`;
+    return out;
+  }
+
+  // Lightly colour a briefing: highlight `code`, UPPERCASE LABELS: and bullets.
+  colorBriefing(text) {
+    return text.split('\n').map(line => {
+      let l = line;
+      l = l.replace(/`([^`]+)`/g, '\x1b[1;36m$1\x1b[0m');
+      l = l.replace(/^(\s*[•\-]\s)/, '\x1b[33m$1\x1b[0m');
+      l = l.replace(/^(\s*\d+\.\s)/, '\x1b[33m$1\x1b[0m');
+      l = l.replace(/^([A-Z][A-Za-z ]+:)(\s)/, '\x1b[1;33m$1\x1b[0m$2');
+      l = l.replace(/(echo\s+[^\n]*>\s*\/dev\/exit)/g, '\x1b[1;32m$1\x1b[0m');
+      return l;
+    }).join('\n');
+  }
+
+  // Suggestions shown for beginner levels; fade out as the player levels up.
+  currentSuggestions() {
+    const lvl = this.level();
+    if (!lvl) return [];
+    return (LEVEL_SUGGESTIONS[lvl.id] || []);
   }
 
   showBriefing(ctx) { ctx.out('\n\x1b[1mLEVEL ' + this.level().id + ' — ' + this.level().name + '\x1b[0m\n\n' + this.level().briefing.trim() + '\n\n'); }
