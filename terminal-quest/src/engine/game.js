@@ -82,6 +82,55 @@ const LEVEL_SUGGESTIONS = {
     { cmd: 'grep PATTERN FILE', desc: 'search one file' },
     { cmd: 'grep -r PATTERN /dir', desc: 'search a whole tree' },
     { cmd: 'grep -rn PATTERN /dir', desc: 'add line numbers' }
+  ],
+  // Mid-game: generic command PATTERNS only — a nudge toward the right tool,
+  // not the answer. (Boss levels 10, 15, 20 deliberately get no chips.)
+  9: [
+    { cmd: 'find /path -name "*.ext"', desc: 'match by name' },
+    { cmd: 'find /path -mtime +30', desc: 'older than 30 days' },
+    { cmd: 'find /path -name "*.x" -mtime +30 -delete', desc: 'list first, THEN add -delete' }
+  ],
+  11: [
+    { cmd: 'ls -l /path', desc: 'inspect current permissions' },
+    { cmd: 'chown :group /path', desc: 'set the group' },
+    { cmd: 'chmod 750 /dir', desc: 'rwxr-x---' },
+    { cmd: 'chmod 600 /file', desc: 'rw-------' }
+  ],
+  12: [
+    { cmd: 'ps aux | grep NAME', desc: 'find a process + its PID' },
+    { cmd: 'top', desc: 'see the CPU hog on top' },
+    { cmd: 'kill -9 PID', desc: 'force-kill a stubborn process' }
+  ],
+  13: [
+    { cmd: 'ip addr', desc: 'is the interface UP?' },
+    { cmd: 'sudo ip link set eth0 up', desc: 'bring the link up' },
+    { cmd: 'ping -c 3 HOST', desc: 'is the host reachable?' },
+    { cmd: 'curl http://HOST/PATH', desc: 'is the service answering?' }
+  ],
+  14: [
+    { cmd: 'ssh-keygen', desc: 'make your key pair' },
+    { cmd: 'ssh-copy-id USER@HOST', desc: 'install your public key' },
+    { cmd: 'ssh USER@HOST cat /path/file', desc: 'read a remote file' }
+  ],
+  16: [
+    { cmd: "echo '#!/bin/bash' > script.sh", desc: 'start a script' },
+    { cmd: 'for n in 1 2 3; do echo $n; done', desc: 'loop over a list' },
+    { cmd: 'bash script.sh', desc: 'run it' }
+  ],
+  17: [
+    { cmd: 'case "$1" in a) echo A;; *) echo ?;; esac', desc: 'branch on the argument' },
+    { cmd: 'if [ "$1" = start ]; then echo go; fi', desc: 'if/test alternative' },
+    { cmd: 'bash script.sh start', desc: 'run with an argument' }
+  ],
+  18: [
+    { cmd: 'echo "M H * * * /path/cmd" > mycron', desc: 'min hour * * * command' },
+    { cmd: 'crontab mycron', desc: 'install the schedule' },
+    { cmd: 'crontab -l', desc: 'verify it' }
+  ],
+  19: [
+    { cmd: "awk -F'|' '{print $3}' FILE", desc: 'print the 3rd |-field' },
+    { cmd: "awk -F'|' '/^42\\|/' FILE", desc: 'the row starting with 42' },
+    { cmd: "sed 's/old/new/g' FILE", desc: 'substitute text' }
   ]
 };
 

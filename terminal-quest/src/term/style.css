@@ -2,17 +2,18 @@
    Green phosphor + cyan/amber accents, framed panels, CRT glow. */
 
 :root {
-  --green: #2bff88;
+  --green: #35f58e;
+  --green-soft: #7dffb8;
   --green-dim: #17c265;
-  --panel: #0a3d1a;
-  --cyan: #3fe0ff;
-  --blue: #6ea8ff;
-  --amber: #ffcf3f;
-  --red: #ff5d5d;
-  --magenta: #d98bff;
-  --bg: #020604;
-  --bg2: #04140b;
-  --line: #0e3a20;
+  --panel: #0c3f1e;
+  --cyan: #5fd6ff;
+  --blue: #7fb0ff;
+  --amber: #ffc247;
+  --red: #ff6b6b;
+  --magenta: #c78bff;
+  --bg: #030805;
+  --bg2: #061710;
+  --line: #123f24;
   /* A generous monospace stack — first installed wins. Fira/Cascadia/JetBrains
      give the game a modern coding-font feel; the rest are safe fallbacks. */
   --font: "JetBrains Mono", "Cascadia Mono", "Cascadia Code", "Fira Code",
@@ -81,17 +82,47 @@ body {
   position: relative;
 }
 
-/* CRT scanlines + vignette */
+/* CRT scanlines + vignette + very subtle flicker */
 #terminal-wrap::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 3;
   background:
-    repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(0,25,10,0.22) 3px),
-    radial-gradient(140% 120% at 50% 50%, transparent 62%, rgba(0,0,0,0.45) 100%);
+    repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(0,25,10,0.18) 3px),
+    radial-gradient(140% 120% at 50% 50%, transparent 60%, rgba(0,0,0,0.5) 100%);
   mix-blend-mode: multiply;
-  opacity: 0.55;
+  opacity: 0.5;
+  animation: crt-flicker 5.5s infinite steps(1);
+}
+/* a single bright scanline slowly sweeping down the screen */
+#terminal-wrap::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  height: 90px;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(53,245,142,0.05) 45%, rgba(53,245,142,0.09) 50%, rgba(53,245,142,0.05) 55%, transparent);
+  animation: crt-sweep 7s linear infinite;
+}
+@keyframes crt-flicker {
+  0%, 100% { opacity: 0.5; }
+  49% { opacity: 0.5; }
+  50% { opacity: 0.56; }
+  51% { opacity: 0.5; }
+  92% { opacity: 0.5; }
+  93% { opacity: 0.46; }
+  94% { opacity: 0.5; }
+}
+@keyframes crt-sweep {
+  0% { top: -90px; }
+  100% { top: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #terminal-wrap::after { animation: none; }
+  #terminal-wrap::before { display: none; }
 }
 
 #screen {
@@ -102,7 +133,7 @@ body {
   font-size: 14px;
   line-height: 1.4;
   outline: none;
-  text-shadow: 0 0 4px rgba(43,255,136,0.35);
+  text-shadow: 0 0 4px rgba(53,245,142,0.35);
   user-select: text;
   scrollbar-width: thin;
   scrollbar-color: var(--green-dim) transparent;

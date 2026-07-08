@@ -5,13 +5,28 @@
  */
 
 const COLORS = {
-  30: '#000000', 31: '#ff5555', 32: '#00ff66', 33: '#ffcc00', 34: '#5599ff',
-  35: '#cc66ff', 36: '#33dddd', 37: '#cccccc', 90: '#888888', 91: '#ff8888',
-  92: '#88ff88', 93: '#ffee88', 94: '#88bbff', 95: '#dd99ff', 96: '#88eeee', 97: '#ffffff'
+  30: '#04120a', 31: '#ff6b6b', 32: '#35f58e', 33: '#ffc247', 34: '#7fb0ff',
+  35: '#c78bff', 36: '#5fd6ff', 37: '#cfe8da', 90: '#7d9488', 91: '#ff9a9a',
+  92: '#8dffb8', 93: '#ffe08a', 94: '#a8c8ff', 95: '#dcb0ff', 96: '#a6ecff', 97: '#ffffff'
 };
 
 function esc(s) {
   return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+}
+
+// xterm 256-colour index -> hex
+function xterm256(n) {
+  if (n < 16) return COLORS[n < 8 ? 30 + n : 82 + n] || '#cccccc';
+  if (n <= 231) {
+    n -= 16;
+    const levels = [0, 95, 135, 175, 215, 255];
+    const r = levels[Math.floor(n / 36) % 6];
+    const g = levels[Math.floor(n / 6) % 6];
+    const b = levels[n % 6];
+    return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+  }
+  const v = 8 + (n - 232) * 10;
+  return '#' + [v, v, v].map(x => x.toString(16).padStart(2, '0')).join('');
 }
 
 // Returns { html, clear } — clear=true means the buffer should be wiped first.
@@ -27,7 +42,7 @@ function ansiToHtml(text) {
     let styles = '';
     if (state.bold) styles += 'font-weight:700;';
     if (state.inverse) {
-      styles += `background:${fg || '#00ff66'};color:#000;`;
+      styles += `background:${fg || '#35f58e'};color:#031007;`;
     } else if (fg) {
       styles += `color:${fg};`;
     }
@@ -43,13 +58,27 @@ function ansiToHtml(text) {
       if (m) {
         const codes = m[1].split(';').filter(x => x !== '').map(Number);
         if (codes.length === 0) codes.push(0);
-        for (const c of codes) {
+        for (let k = 0; k < codes.length; k++) {
+          const c = codes[k];
           if (c === 0) state = { fg: null, bold: false, inverse: false };
           else if (c === 1) state.bold = true;
           else if (c === 7) state.inverse = true;
           else if (c === 22) state.bold = false;
           else if (c === 27) state.inverse = false;
           else if (c === 39) state.fg = null;
+          else if (c === 38 || c === 48) {
+            // extended colour: 38;2;r;g;b (truecolor) or 38;5;n (256)
+            const target = c === 38 ? 'fg' : 'bg';
+            if (codes[k + 1] === 2) {
+              const [r, g, b] = [codes[k + 2] || 0, codes[k + 3] || 0, codes[k + 4] || 0];
+              const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+              if (target === 'fg') state.fg = hex;
+              k += 4;
+            } else if (codes[k + 1] === 5) {
+              state.fg = xterm256(codes[k + 2] || 0);
+              k += 2;
+            }
+          }
           else if (COLORS[c]) state.fg = COLORS[c];
         }
         i += m[0].length;
