@@ -10,6 +10,7 @@ const { commands } = require('./commands');
 const { buildBaseWorld } = require('./world');
 const { LEVELS } = require('../game/levels');
 const { EXAM_TASKS, buildExam } = require('../game/exam');
+const { buildDrill } = require('../game/drills');
 
 // The transferable Linux commands proficiency is measured against. Concepts
 // like pipes/redirection are tracked separately; these are the real tools.
@@ -69,6 +70,7 @@ const ACHIEVEMENTS = {
   'boss-slayer':         { name: 'Boss Slayer', desc: 'Survive the Disk Crisis.' },
   'ghostbuster':         { name: 'Ghostbuster', desc: 'Evict an intruder from the system.' },
   'journeyman':          { name: 'Journeyman', desc: 'Use 20 different Linux commands correctly.' },
+  'gym-rat':             { name: 'Gym Rat', desc: 'Complete 10 practice drills.' },
   'fluent':              { name: 'Fluent in Shell', desc: 'Reach proficient (3+ correct uses) on 15 commands.' },
   'certified':           { name: 'Certified Operator', desc: 'Pass the OmniCorp certification exam.' },
   'root-wizard':         { name: 'Root Wizard', desc: 'Complete Terminal Quest.' }
@@ -192,6 +194,8 @@ class Game {
     this.mastery = {};       // command name -> count of correct uses
     this.exam = null;        // active certification-exam state, or null
     this.certScore = null;   // best certification score achieved (%)
+    this.drill = null;       // active practice drill, or null
+    this.drillsCompleted = 0;
 
     // per-level trackers
     this.hintsUsed = 0;
@@ -235,6 +239,7 @@ class Game {
       this.gameMinutes = save.gameMinutes || 9 * 60;
       this.mastery = save.mastery || {};
       this.certScore = save.certScore != null ? save.certScore : null;
+      this.drillsCompleted = save.drillsCompleted || 0;
     }
     this.rebuildWorld();
     this.shell = new Shell({ vfs: this.vfs, game: this, commands, user: this.playerUser() });
@@ -288,7 +293,8 @@ class Game {
       finished: this.finished,
       gameMinutes: this.gameMinutes,
       mastery: this.mastery,
-      certScore: this.certScore
+      certScore: this.certScore,
+      drillsCompleted: this.drillsCompleted
     });
   }
 
@@ -539,7 +545,7 @@ class Game {
     this.unlock('root-wizard');
     out('\x1b[1;36m  ▸ ONE THING LEFT:\x1b[0m the certification. Prove your skills with no hints,\n');
     out('    no suggestions — type \x1b[1;33mexam\x1b[0m to take the OmniCorp Operator test.\n');
-    out('    Type \x1b[1;33mskills\x1b[0m to see your personal mastery matrix.\n\n');
+    out('    Type \x1b[1;33mskills\x1b[0m for your mastery matrix, \x1b[1;33mdrill\x1b[0m to sharpen weak spots first.\n\n');
     this.changed();
   }
 
@@ -594,6 +600,7 @@ class Game {
     const lvl = this.level();
     if (lvl && lvl.onEvent) lvl.onEvent(this, 'command', { name, args, code });
     if (this.exam) this.examTick();
+    if (this.drill) this.drillTick();
     this.changed();
   }
 
@@ -702,7 +709,51 @@ class Game {
   quitExam(ctx) {
     if (!this.exam) { ctx.out('No exam in progress.\n'); return; }
     this.exam = null;
+    this.procs = this.procs.filter(p => !/exam-hog/.test(p.cmd));
     ctx.out('\x1b[33mExam abandoned. Your sandbox stays in /exam; type \x1b[0m\x1b[1;32mexam\x1b[0m\x1b[33m to start fresh anytime.\x1b[0m\n');
+  }
+
+  // ---- drill mode (targeted practice) -----------------------------------------
+
+  startDrill(ctx) {
+    if (this.exam) { ctx.out('Finish (or quit) the exam first — one test at a time.\n'); return; }
+    const seed = (Date.now() ^ (this.drillsCompleted * 2654435761)) >>> 0;
+    const task = buildDrill(this, seed);
+    this.drill = { ...task, seed, startedAt: Date.now() };
+    try { this.shell.chdir('/drill'); } catch (e) {}
+    ctx.out('\n\x1b[1;35m╭─ DRILL ' + '─'.repeat(52) + '╮\x1b[0m\n');
+    ctx.out(`\x1b[35m│\x1b[0m \x1b[90mtargets:\x1b[0m \x1b[36m${task.skills.join(', ')}\x1b[0m` +
+            `   \x1b[90m(picked from your weakest skills — see: skills)\x1b[0m\n`);
+    ctx.out(`\x1b[35m│\x1b[0m ${task.prompt}\n`);
+    ctx.out('\x1b[35m│\x1b[0m \x1b[90mGraded automatically when the state is right · drill quit to bail\x1b[0m\n');
+    ctx.out('\x1b[1;35m╰' + '─'.repeat(60) + '╯\x1b[0m\n');
+    ctx.out('\x1b[90m(you are now in /drill — no hints, any valid approach passes)\x1b[0m\n');
+  }
+
+  drillTick() {
+    if (!this.drill) return;
+    let ok = false;
+    try { ok = this.drill.check(this); } catch (e) { ok = false; }
+    if (!ok) return;
+    const secs = Math.round((Date.now() - this.drill.startedAt) / 1000);
+    this.drill = null;
+    this.drillsCompleted++;
+    this.print(`\x1b[1;32m  ✔ DRILL PASSED\x1b[0m \x1b[90m(${secs}s · ${this.drillsCompleted} total)\x1b[0m — type \x1b[1;35mdrill\x1b[0m for another.\n`);
+    this.addXP(15, 'drill completed');
+    if (this.drillsCompleted >= 10) this.unlock('gym-rat');
+    this.save();
+  }
+
+  quitDrill(ctx) {
+    if (!this.drill) { ctx.out('No drill in progress. Type \x1b[1;35mdrill\x1b[0m to start one.\n'); return; }
+    this.drill = null;
+    this.procs = this.procs.filter(p => !/drill-hog/.test(p.cmd));
+    ctx.out('\x1b[33mDrill abandoned. No XP lost — type \x1b[0m\x1b[1;35mdrill\x1b[0m\x1b[33m whenever you want to spar again.\x1b[0m\n');
+  }
+
+  showDrillStatus(ctx) {
+    if (!this.drill) { ctx.out('No drill in progress. Type \x1b[1;35mdrill\x1b[0m to start one.\n'); return; }
+    ctx.out(`\x1b[1;35mCurrent drill\x1b[0m \x1b[90m(targets: ${this.drill.skills.join(', ')})\x1b[0m\n  ${this.drill.prompt}\n`);
   }
 
   notePipeline(stages) {

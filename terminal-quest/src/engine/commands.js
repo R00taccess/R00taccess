@@ -1596,6 +1596,7 @@ C.help = (ctx) => {
   ctx.out('  mail            read messages from your colleagues\n');
   ctx.out('  progress        XP, rank, level status and achievements\n');
   ctx.out('  skills          your mastery matrix — what you have really practised\n');
+  ctx.out('  drill           a quick practice task aimed at your weakest skills\n');
   ctx.out('  exam            the unaided certification test (after you finish)\n');
   ctx.out('  resetlevel      rebuild this level if you broke something\n');
   ctx.out('  F1              toggle the Command Compendium panel\n');
@@ -1609,6 +1610,13 @@ C.exam = (ctx, args) => {
   if (sub === 'status' || sub === 'tasks') return ctx.game.showExamStatus(ctx);
   if (sub === 'quit' || sub === 'stop' || sub === 'abandon') return ctx.game.quitExam(ctx);
   return ctx.game.startExam(ctx);
+};
+C.drill = (ctx, args) => {
+  const sub = (args[0] || '').toLowerCase();
+  if (sub === 'status') return ctx.game.showDrillStatus(ctx);
+  if (sub === 'quit' || sub === 'stop' || sub === 'abandon') return ctx.game.quitDrill(ctx);
+  if (ctx.game.drill) return ctx.game.showDrillStatus(ctx);
+  return ctx.game.startDrill(ctx);
 };
 C.tutorial = (ctx) => ctx.game.showTutorial(ctx);
 C.mission = (ctx) => ctx.game.showBriefing(ctx);

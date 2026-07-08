@@ -298,8 +298,30 @@ async function proficiencyTest() {
   await run(g, "awk -F, '{print $2}' /exam/data/users.csv > /exam/emails.txt");
   await run(g, "echo 'echo DONE' > /exam/run.sh");
   await run(g, 'bash /exam/run.sh > /exam/result.txt');
+  const ps = stripAnsi(await run(g, 'ps aux'));
+  const hogPid = ps.match(/(\d+)[^\n]*exam-hog/)[1];
+  await run(g, `kill ${hogPid}`);
+  await run(g, 'echo "0 4 * * * /exam/run.sh" > /exam/cronline && crontab /exam/cronline');
   ok('exam passed after all tasks', g.certScore === 100 && g.exam === null);
   ok('certified achievement unlocked', g.achievements.has('certified'));
+
+  // drill mode: machinery + a deterministic solve
+  const dintro = stripAnsi(await run(g, 'drill'));
+  ok('drill starts with a task', dintro.includes('DRILL') && !!g.drill);
+  ok('drill drops player into /drill', g.shell.cwd === '/drill');
+  const dstatus = stripAnsi(await run(g, 'drill status'));
+  ok('drill status re-shows the prompt', dstatus.includes(g.drill.prompt.slice(0, 20)));
+  await run(g, 'drill quit');
+  ok('drill quit clears state', g.drill === null);
+  // deterministic drill: install the chmod generator directly and solve it
+  const { DRILL_GENERATORS } = require('../src/game/drills.js');
+  const chmodGen = DRILL_GENERATORS.find(d => d.skills.includes('chmod'));
+  g.vfs.mkdirp('/drill', '/', 'player', 'player');
+  const task = chmodGen.gen(g, () => 0); // rng()=0 -> mode 600
+  g.drill = { ...task, skills: chmodGen.skills, startedAt: Date.now() };
+  const beforeDrills = g.drillsCompleted;
+  await run(g, 'chmod 600 /drill/vault.key');
+  ok('drill auto-grades on success', g.drill === null && g.drillsCompleted === beforeDrills + 1);
 
   // mastery + certScore survive save/reload
   let saved = null;

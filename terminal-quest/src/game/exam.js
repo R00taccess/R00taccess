@@ -81,6 +81,20 @@ const EXAM_TASKS = [
     id: 'script', skill: 'bash scripting',
     prompt: 'Write a script /exam/run.sh that prints DONE, then run it so the word DONE is saved in /exam/result.txt.',
     check: (g) => exists(g, '/exam/run.sh') && (fileText(g, '/exam/result.txt') || '').replace(/\n+$/, '') === 'DONE'
+  },
+  {
+    id: 'process', skill: 'ps · kill',
+    prompt: 'A process named exam-hog is running under your user. Find its PID and terminate it.',
+    check: (g) => !g.procs.some(p => /exam-hog/.test(p.cmd))
+  },
+  {
+    id: 'cron', skill: 'crontab',
+    prompt: 'Schedule /exam/run.sh to run every day at 04:00 by installing a crontab.',
+    check: (g) => (g.crontabs['player'] || []).some(l => {
+      const f = l.trim().split(/\s+/);
+      return f[0] === '0' && f[1] === '4' && f[2] === '*' && f[3] === '*' && f[4] === '*' &&
+        f.slice(5).join(' ').includes('/exam/run.sh');
+    })
   }
 ];
 
@@ -118,6 +132,14 @@ function buildExam(game) {
   v.put('/exam/scratch/keep.txt', 'keep me\n', { owner: P });
 
   v.put('/exam/secret.key', 'topsecret\n', { owner: P, mode: 0o644 });
+
+  // the process-management task's target (fresh each attempt)
+  game.procs = game.procs.filter(p => !/exam-hog/.test(p.cmd));
+  game.procs.push({
+    pid: 8000 + Math.floor(Math.random() * 900),
+    user: P, cpu: 77.7, mem: 4.2, time: '00:13:37',
+    cmd: '/usr/local/bin/exam-hog --churn'
+  });
   return { errCount };
 }
 

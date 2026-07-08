@@ -90,12 +90,21 @@ work. Four systems target that directly:
   `skills` command (and the F1 compendium's ○/◑/● dots) shows your personal
   matrix: *met it* → *familiar (1–2×)* → *proficient (3+×)*. You can see
   exactly which tools you've only read about versus genuinely practised.
+- **Practice drills.** `drill` generates a short randomized task in a fresh
+  `/drill` sandbox — and the picker reads your mastery matrix, so it aims at
+  your **weakest** skills (commands you've barely used are up to 6× more likely
+  to come up). No hints, small XP, infinitely repeatable: this is how "met it
+  once" becomes muscle memory.
 - **The certification exam.** After the campaign (or anytime, with `exam`),
-  you get a fresh `/exam` sandbox and a checklist of applied tasks covering
-  every core skill — **no hints, no suggestion chips**, graded purely by
+  you get a fresh `/exam` sandbox and a checklist of 11 applied tasks covering
+  every core skill — files, pipelines, grep/find, permissions, processes,
+  scripting, cron — with **no hints, no suggestion chips**, graded purely by
   inspecting the resulting system state, so any valid approach passes. Clearing
   it earns the *Certified Operator* achievement. That's the game's actual
   definition of "proficient": you did it unaided.
+
+Together they form the loop the game is built around: **learn** (levels with
+key ideas) → **practice** (drills on your weak spots) → **certify** (the exam).
 
 Each level ends by capturing a **flag** — a secret token you find by using the
 level's commands correctly. Submit it with:

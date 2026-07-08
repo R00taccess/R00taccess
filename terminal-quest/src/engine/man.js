@@ -507,6 +507,12 @@ MAN_PAGES.progress = page('progress', 6, 'Terminal Quest: show XP, rank and achi
 MAN_PAGES.skills = page('skills', 6, 'Terminal Quest: your proficiency matrix',
   'skills',
   'Show every core command you have learned and how much you have actually\nPRACTISED it: ○ met, ◑ used 1-2 times, ● proficient (3+ times). Proficiency\ncomes from using a command repeatedly in real situations, not from meeting it\nonce — this matrix shows where you truly stand.', [], []);
+MAN_PAGES.drill = page('drill', 6, 'Terminal Quest: targeted practice drills',
+  'drill [status|quit]',
+  'Generate a short, randomized practice task in a fresh /drill sandbox. The\npicker reads your mastery matrix (see: skills) and aims at your WEAKEST\nskills — commands you have met but barely used are up to six times more\nlikely to come up. Drills are graded by the resulting system state, so any\nvalid approach passes. No hints, small XP, repeat as often as you like:\nthis is how "met it once" becomes muscle memory.',
+  [['status', 'show the current drill task again'],
+   ['quit', 'abandon the current drill (no penalty)']],
+  [['drill', 'get a practice task'], ['drill quit', 'bail out of one']]);
 MAN_PAGES.exam = page('exam', 6, 'Terminal Quest: OmniCorp certification exam',
   'exam [status|quit]',
   'Take the certification test: a fresh /exam sandbox and a checklist of real\ntasks spanning every core skill, with NO hints and NO command suggestions.\nEach task is graded automatically the moment you get it right. Passing all of\nthem certifies you as an OmniCorp Operator — genuine, demonstrated proficiency.',
