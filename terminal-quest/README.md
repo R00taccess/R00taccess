@@ -74,6 +74,29 @@ get no chips at all** — those are your "prove it" moments. New commands are
 announced as they're introduced, and boss levels get their own red-framed
 warning banner.
 
+## Designed for proficiency, not just exposure
+
+The goal is that a player who finishes can sit at a *real* Linux terminal and
+work. Four systems target that directly:
+
+- **Key ideas, not just keystrokes.** Every level opens with a one-line
+  transferable mental model (`◆ KEY IDEA`) — *why* the tool exists and how to
+  think about it (e.g. "df says the disk is full, du says which directory,
+  find says which file"), so knowledge survives outside the game's puzzles.
+- **Spaced reuse.** Levels are cumulative by design — later puzzles silently
+  require earlier commands (bosses require chains of them), which is how
+  recall actually forms.
+- **Mastery tracking.** Every correct use of a core command is counted. The
+  `skills` command (and the F1 compendium's ○/◑/● dots) shows your personal
+  matrix: *met it* → *familiar (1–2×)* → *proficient (3+×)*. You can see
+  exactly which tools you've only read about versus genuinely practised.
+- **The certification exam.** After the campaign (or anytime, with `exam`),
+  you get a fresh `/exam` sandbox and a checklist of applied tasks covering
+  every core skill — **no hints, no suggestion chips**, graded purely by
+  inspecting the resulting system state, so any valid approach passes. Clearing
+  it earns the *Certified Operator* achievement. That's the game's actual
+  definition of "proficient": you did it unaided.
+
 Each level ends by capturing a **flag** — a secret token you find by using the
 level's commands correctly. Submit it with:
 

@@ -340,12 +340,16 @@ function refreshCompendium() {
 
   const cmdList = document.getElementById('cmd-list');
   cmdList.innerHTML = '';
+  const tierMark = ['<span class="m-new">○</span>', '<span class="m-fam">◑</span>', '<span class="m-pro">●</span>'];
   for (const c of game.learnedCommands()) {
     const man = MAN_PAGES[c];
     let one = '';
     if (man) { const m = /- (.*)/.exec(man.split('\n')[3] || ''); one = m ? m[1] : ''; }
+    const uses = (game.mastery && game.mastery[c]) || 0;
+    const tier = game.masteryTier ? game.masteryTier(uses) : 0;
     const li = document.createElement('li');
-    li.innerHTML = `<code>${escapeHtml(c)}</code> <span class="desc">${escapeHtml(one)}</span>`;
+    li.innerHTML = `${tierMark[tier]} <code>${escapeHtml(c)}</code> <span class="desc">${escapeHtml(one)}</span>`;
+    li.title = uses ? `used ${uses}×` : 'not used yet';
     cmdList.appendChild(li);
   }
 

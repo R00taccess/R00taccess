@@ -1595,12 +1595,21 @@ C.help = (ctx) => {
   ctx.out('  mission         re-read the current level briefing\n');
   ctx.out('  mail            read messages from your colleagues\n');
   ctx.out('  progress        XP, rank, level status and achievements\n');
+  ctx.out('  skills          your mastery matrix — what you have really practised\n');
+  ctx.out('  exam            the unaided certification test (after you finish)\n');
   ctx.out('  resetlevel      rebuild this level if you broke something\n');
   ctx.out('  F1              toggle the Command Compendium panel\n');
   ctx.out('Solve a level by finding its flag, then run:  echo THE_FLAG > /dev/exit\n');
 };
 
 C.hint = (ctx) => ctx.game.giveHint(ctx);
+C.skills = (ctx) => ctx.game.showSkills(ctx);
+C.exam = (ctx, args) => {
+  const sub = (args[0] || 'start').toLowerCase();
+  if (sub === 'status' || sub === 'tasks') return ctx.game.showExamStatus(ctx);
+  if (sub === 'quit' || sub === 'stop' || sub === 'abandon') return ctx.game.quitExam(ctx);
+  return ctx.game.startExam(ctx);
+};
 C.tutorial = (ctx) => ctx.game.showTutorial(ctx);
 C.mission = (ctx) => ctx.game.showBriefing(ctx);
 C.resetlevel = (ctx) => ctx.game.resetLevel(ctx);

@@ -175,6 +175,9 @@ body {
 #compendium li { padding: 2px 0; }
 #compendium li code { color: var(--cyan); font-weight: 700; }
 #compendium li .desc { color: #6bbf8c; }
+#compendium li .m-new { color: #4a6b57; }
+#compendium li .m-fam { color: var(--amber); }
+#compendium li .m-pro { color: var(--green); text-shadow: 0 0 6px rgba(53,245,142,0.5); }
 .rank-box { background: #061a0d; border: 1px solid var(--line); border-radius: 6px; padding: 10px; box-shadow: inset 0 0 12px rgba(43,255,136,0.08); }
 #rank-name { font-weight: 700; color: var(--amber); font-size: 15px; letter-spacing: 1px; text-shadow: 0 0 8px rgba(255,207,63,0.4); }
 .xp-bar { height: 9px; background: #0a1a0f; border-radius: 5px; margin: 7px 0 4px; overflow: hidden; border: 1px solid var(--line); }

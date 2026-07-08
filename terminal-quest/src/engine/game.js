@@ -9,6 +9,43 @@ const { Shell } = require('./shell');
 const { commands } = require('./commands');
 const { buildBaseWorld } = require('./world');
 const { LEVELS } = require('../game/levels');
+const { EXAM_TASKS, buildExam } = require('../game/exam');
+
+// The transferable Linux commands proficiency is measured against. Concepts
+// like pipes/redirection are tracked separately; these are the real tools.
+const CORE_SKILLS = new Set([
+  'whoami', 'pwd', 'ls', 'cd', 'mkdir', 'touch', 'rm', 'rmdir', 'cp', 'mv',
+  'cat', 'less', 'head', 'tail', 'echo', 'wc', 'sort', 'uniq', 'cut', 'tr',
+  'grep', 'find', 'du', 'df', 'chmod', 'chown', 'chgrp', 'ps', 'top', 'kill',
+  'jobs', 'ping', 'ip', 'ifconfig', 'netstat', 'curl', 'ssh', 'scp',
+  'ssh-keygen', 'ssh-copy-id', 'who', 'last', 'crontab', 'at', 'sed', 'awk',
+  'bash', 'test', 'man', 'chmod'
+]);
+
+// One transferable mental model per level — the "why" that turns memorised
+// commands into real understanding. Printed with each level's banner.
+const KEY_IDEAS = {
+  1: 'A shell always has an identity (which user) and a location (which directory). Orient yourself before you act.',
+  2: 'Paths are absolute (from /) or relative (from where you stand). cd moves what "here" means.',
+  3: 'The shell has no undo and no trash can — rm is forever. Build up carefully, tear down deliberately.',
+  4: 'cp duplicates, mv relocates or renames. A glob like *.jpg lets one command act on many files at once.',
+  5: 'Never guess why something broke — read the logs. tail shows the most recent, usually most relevant, events.',
+  6: "A command's output can go to a file instead of the screen: > overwrites, >> appends. That's how you build files.",
+  7: 'Tiny tools joined by | compose into powerful queries. sort | uniq -c | sort -nr answers "what is most common?".',
+  8: "grep searches INSIDE files; -r walks a whole tree. It's how you find a needle in a filesystem haystack.",
+  9: 'find locates files by metadata — name, age, size, type — not content, and can act on what it finds.',
+  10: 'Diagnose top-down: df says the disk is full, du says which directory, find says which file. Measure before you delete.',
+  11: 'Permissions are who (user/group/other) may do what (read/write/execute). Least privilege keeps a system safe.',
+  12: 'Every program running is a process with a PID. Find it (ps/top), then signal it (kill). -9 is the last resort.',
+  13: 'Network faults have layers: is the link up (ip), the host reachable (ping), the service answering (curl)? Test each.',
+  14: 'SSH uses key pairs: guard the private key, share the public key. Once installed, you log in without passwords.',
+  15: 'Incident response is a loop: find the intruder, cut their persistence, evict them, and change the locks.',
+  16: 'A script is just commands in a file. Variables and loops let one script do repetitive work reliably.',
+  17: 'Scripts make decisions with if/test and case, so one program handles many situations instead of one.',
+  18: 'cron runs jobs on a schedule, so the machine maintains itself while you sleep.',
+  19: 'sed and awk transform text at scale — substitute patterns, extract columns — without ever opening an editor.',
+  20: 'Real operations means combining every skill under pressure: restore, reclaim, restart, re-arm — then verify.'
+};
 
 const RANKS = [
   { xp: 0, name: 'Trainee' },
@@ -31,6 +68,9 @@ const ACHIEVEMENTS = {
   'reported':            { name: 'This Incident Will Be Reported', desc: 'Get told off by sudo.' },
   'boss-slayer':         { name: 'Boss Slayer', desc: 'Survive the Disk Crisis.' },
   'ghostbuster':         { name: 'Ghostbuster', desc: 'Evict an intruder from the system.' },
+  'journeyman':          { name: 'Journeyman', desc: 'Use 20 different Linux commands correctly.' },
+  'fluent':              { name: 'Fluent in Shell', desc: 'Reach proficient (3+ correct uses) on 15 commands.' },
+  'certified':           { name: 'Certified Operator', desc: 'Pass the OmniCorp certification exam.' },
   'root-wizard':         { name: 'Root Wizard', desc: 'Complete Terminal Quest.' }
 };
 
@@ -149,6 +189,9 @@ class Game {
     this.totalCommands = 0;
     this.completionTimes = {};
     this.finished = false;
+    this.mastery = {};       // command name -> count of correct uses
+    this.exam = null;        // active certification-exam state, or null
+    this.certScore = null;   // best certification score achieved (%)
 
     // per-level trackers
     this.hintsUsed = 0;
@@ -190,6 +233,8 @@ class Game {
       this.completionTimes = save.completionTimes || {};
       this.finished = !!save.finished;
       this.gameMinutes = save.gameMinutes || 9 * 60;
+      this.mastery = save.mastery || {};
+      this.certScore = save.certScore != null ? save.certScore : null;
     }
     this.rebuildWorld();
     this.shell = new Shell({ vfs: this.vfs, game: this, commands, user: this.playerUser() });
@@ -241,7 +286,9 @@ class Game {
       totalCommands: this.totalCommands,
       completionTimes: this.completionTimes,
       finished: this.finished,
-      gameMinutes: this.gameMinutes
+      gameMinutes: this.gameMinutes,
+      mastery: this.mastery,
+      certScore: this.certScore
     });
   }
 
@@ -332,6 +379,10 @@ class Game {
     this.print('\n' + this.levelBanner(lvl));
     if (lvl.commands && lvl.commands.length) {
       this.print(`\x1b[1;36m  ▸ NEW TOOLS:\x1b[0m \x1b[36m${lvl.commands.join('  ')}\x1b[0m   \x1b[90m(try: man ${lvl.commands.filter(c => /^[a-z]/.test(c))[0] || lvl.commands[0]})\x1b[0m\n`);
+    }
+    const idea = KEY_IDEAS[lvl.id];
+    if (idea) {
+      this.print(`\x1b[1;35m  ◆ KEY IDEA:\x1b[0m \x1b[35m${idea}\x1b[0m\n`);
     }
     this.print('\n' + this.colorBriefing(lvl.briefing.trim()) + '\n');
     // Beginner levels teach with concrete, ready-to-run command suggestions.
@@ -486,6 +537,9 @@ class Game {
     out(`Final score: ${this.xp} XP · ${this.achievements.size} achievements · total commands: ${this.totalCommands}\n`);
     out('Every command you used here works exactly the same on real Linux. Go play.\n\n');
     this.unlock('root-wizard');
+    out('\x1b[1;36m  ▸ ONE THING LEFT:\x1b[0m the certification. Prove your skills with no hints,\n');
+    out('    no suggestions — type \x1b[1;33mexam\x1b[0m to take the OmniCorp Operator test.\n');
+    out('    Type \x1b[1;33mskills\x1b[0m to see your personal mastery matrix.\n\n');
     this.changed();
   }
 
@@ -500,6 +554,10 @@ class Game {
     ctx.out(`  XP       : ${this.xp}\n`);
     ctx.out(`  Level    : ${lvl.id}/${this.levels.length} — ${lvl.name}${this.finished ? ' (GAME COMPLETE)' : ''}\n`);
     ctx.out(`  Commands : ${this.totalCommands} executed\n`);
+    const distinct = Object.keys(this.mastery).length;
+    const proficient = Object.values(this.mastery).filter(n => n >= 3).length;
+    ctx.out(`  Skills   : ${distinct} used · ${proficient} proficient  (see: skills)\n`);
+    if (this.certScore != null) ctx.out(`  Cert     : \x1b[1;33mCERTIFIED OPERATOR (${this.certScore}%)\x1b[0m\n`);
     ctx.out(`  Clock    : ${this.dateString()}\n`);
     ctx.out(`  Unlocked : ${[...this.achievements].length}/${Object.keys(ACHIEVEMENTS).length} achievements (see: achievements)\n\n`);
   }
@@ -532,9 +590,119 @@ class Game {
     this.tickClock();
     if (code === 0) this.xp += 1; // silent trickle for correct usage
     else if (code !== 0 && code !== 1) this.xp = Math.max(0, this.xp - 1);
+    this.noteMastery(name, code);
     const lvl = this.level();
     if (lvl && lvl.onEvent) lvl.onEvent(this, 'command', { name, args, code });
+    if (this.exam) this.examTick();
     this.changed();
+  }
+
+  // ---- proficiency / mastery -------------------------------------------------
+
+  noteMastery(name, code) {
+    if (code !== 0 || !CORE_SKILLS.has(name)) return;
+    this.mastery[name] = (this.mastery[name] || 0) + 1;
+    const distinct = Object.keys(this.mastery).length;
+    if (distinct >= 20) this.unlock('journeyman');
+    const proficient = Object.values(this.mastery).filter(n => n >= 3).length;
+    if (proficient >= 15) this.unlock('fluent');
+  }
+
+  masteryTier(count) { return count >= 3 ? 2 : count >= 1 ? 1 : 0; }
+
+  showSkills(ctx) {
+    const learned = this.learnedCommands().filter(c => CORE_SKILLS.has(c));
+    const dots = ['\x1b[90m○ new\x1b[0m', '\x1b[33m◑ familiar\x1b[0m', '\x1b[1;32m● proficient\x1b[0m'];
+    ctx.out('\n\x1b[1m── SKILLS MATRIX — what you have actually practised ──\x1b[0m\n');
+    ctx.out('  \x1b[90m○ met it\x1b[0m   \x1b[33m◑ used it 1-2×\x1b[0m   \x1b[1;32m● proficient (3+×)\x1b[0m\n\n');
+    if (!learned.length) { ctx.out('  (no core commands learned yet)\n\n'); return; }
+    let prof = 0, fam = 0;
+    const cols = 3;
+    const cells = learned.map(c => {
+      const n = this.mastery[c] || 0;
+      const t = this.masteryTier(n);
+      if (t === 2) prof++; else if (t === 1) fam++;
+      const mark = t === 2 ? '\x1b[1;32m●' : t === 1 ? '\x1b[33m◑' : '\x1b[90m○';
+      return `${mark} ${c.padEnd(12)} ${String(n).padStart(2)}×\x1b[0m`;
+    });
+    for (let i = 0; i < cells.length; i += cols) {
+      ctx.out('  ' + cells.slice(i, i + cols).join('  ') + '\n');
+    }
+    const total = learned.length;
+    const pct = Math.round((prof / total) * 100);
+    ctx.out(`\n  Proficient: \x1b[1;32m${prof}\x1b[0m/${total}   Familiar: \x1b[33m${fam}\x1b[0m   ` +
+            `Mastery: \x1b[1;36m${pct}%\x1b[0m\n`);
+    if (this.finished) {
+      ctx.out(`  \x1b[90mReady for the finish line — type \x1b[0m\x1b[1;33mexam\x1b[0m\x1b[90m for the certification test.\x1b[0m\n`);
+    }
+    ctx.out('\n');
+  }
+
+  // ---- certification exam ----------------------------------------------------
+
+  startExam(ctx) {
+    if (this.exam) { this.showExamStatus(ctx); return; }
+    const { errCount } = buildExam(this);
+    this.exam = { done: new Set(), startedAt: Date.now(), errCount };
+    // land the player in the exam sandbox
+    try { this.shell.chdir('/exam'); } catch (e) {}
+    ctx.out('\n\x1b[1;36m╔══════════════════════════════════════════════════════════════╗\x1b[0m\n');
+    ctx.out('\x1b[1;36m║          OMNICORP OPERATOR CERTIFICATION EXAM                 ║\x1b[0m\n');
+    ctx.out('\x1b[1;36m╚══════════════════════════════════════════════════════════════╝\x1b[0m\n');
+    ctx.out('No hints. No suggestions. Your sandbox is \x1b[1;36m/exam\x1b[0m (you are now in it).\n');
+    ctx.out('Complete every task below — each is graded automatically the moment you\n');
+    ctx.out('get it right. Type \x1b[1;32mexam status\x1b[0m to review, \x1b[1;32mexam quit\x1b[0m to abandon.\n');
+    this.showExamStatus(ctx);
+    this.examTick(ctx);
+  }
+
+  showExamStatus(ctx) {
+    if (!this.exam) { ctx.out('No exam in progress. Type \x1b[1;32mexam\x1b[0m to begin the certification.\n'); return; }
+    ctx.out('\n\x1b[1m── CERTIFICATION TASKS ──\x1b[0m\n');
+    EXAM_TASKS.forEach((t, i) => {
+      const done = this.exam.done.has(t.id);
+      const mark = done ? '\x1b[1;32m[✔]' : '\x1b[90m[ ]';
+      ctx.out(`  ${mark} ${String(i + 1).padStart(2)}. \x1b[1m${t.skill}\x1b[0m\x1b[0m\n`);
+      ctx.out(`        \x1b[90m${t.prompt}\x1b[0m\n`);
+    });
+    ctx.out(`\n  Progress: \x1b[1;32m${this.exam.done.size}\x1b[0m/${EXAM_TASKS.length}\n\n`);
+  }
+
+  examTick(ctx) {
+    if (!this.exam) return;
+    const out = (s) => (ctx ? ctx.out(s) : this.print(s));
+    for (const t of EXAM_TASKS) {
+      if (this.exam.done.has(t.id)) continue;
+      let ok = false;
+      try { ok = t.check(this); } catch (e) { ok = false; }
+      if (ok) {
+        this.exam.done.add(t.id);
+        this.print(`\x1b[1;32m  ✔ Task passed: ${t.skill}\x1b[0m  \x1b[90m(${this.exam.done.size}/${EXAM_TASKS.length})\x1b[0m\n`);
+      }
+    }
+    if (this.exam.done.size === EXAM_TASKS.length) this.finishExam();
+  }
+
+  finishExam() {
+    const secs = Math.round((Date.now() - this.exam.startedAt) / 1000);
+    const score = 100;
+    this.certScore = Math.max(this.certScore || 0, score);
+    this.exam = null;
+    this.print('\n\x1b[1;33m╔══════════════════════════════════════════════════════════════╗\x1b[0m\n');
+    this.print('\x1b[1;33m║   ★  CERTIFIED OMNICORP OPERATOR  ★                           ║\x1b[0m\n');
+    this.print(`\x1b[1;33m║   All ${EXAM_TASKS.length} tasks passed unaided · score ${score}% · ${String(secs).padStart(4)}s${' '.repeat(20)}║\x1b[0m\n`);
+    this.print('\x1b[1;33m╚══════════════════════════════════════════════════════════════╝\x1b[0m\n');
+    this.print('You solved real Linux tasks with no hints and no suggestions. That is\nexactly what proficiency looks like. Every one of these works identically\non a real machine — go run them there.\n\n');
+    this.unlock('certified');
+    this.addXP(300, 'certification passed');
+    this.save();
+    this.changed();
+  }
+
+  quitExam(ctx) {
+    if (!this.exam) { ctx.out('No exam in progress.\n'); return; }
+    this.exam = null;
+    ctx.out('\x1b[33mExam abandoned. Your sandbox stays in /exam; type \x1b[0m\x1b[1;32mexam\x1b[0m\x1b[33m to start fresh anytime.\x1b[0m\n');
   }
 
   notePipeline(stages) {

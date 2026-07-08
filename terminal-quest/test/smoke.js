@@ -272,10 +272,54 @@ async function persistenceTest() {
   ok('solved level 2 in resumed session', g2.level().id === 3);
 }
 
+async function proficiencyTest() {
+  console.log('— mastery / skills / certification exam —');
+  const g = makeGame();
+
+  // mastery counts correct uses of core commands only
+  await run(g, 'pwd'); await run(g, 'pwd'); await run(g, 'pwd');
+  ok('mastery counts uses', g.mastery.pwd >= 3);
+  await run(g, 'cat /definitely/not/there');
+  const before = g.mastery.cat || 0;
+  ok('failed command not counted', (g.mastery.cat || 0) === before);
+  ok('skills output renders', stripAnsi(await run(g, 'skills')).includes('SKILLS MATRIX'));
+
+  // certification exam: start, verify checklist, solve every task, pass
+  const intro = stripAnsi(await run(g, 'exam'));
+  ok('exam starts with checklist', intro.includes('CERTIFICATION') && intro.includes('1.'));
+  ok('exam drops player into /exam', g.shell.cwd === '/exam');
+  await run(g, 'mkdir -p /exam/out/logs && touch /exam/out/logs/audit.log');
+  await run(g, 'echo READY > /exam/status');
+  await run(g, 'grep CRITICAL /exam/logs/service.log > /exam/critical.txt');
+  await run(g, 'sort /exam/data/codes.txt | uniq -c | sort -nr | head -1 | awk \'{print $2}\' > /exam/top.txt');
+  await run(g, 'find /exam/scratch -name "*.tmp" -delete');
+  await run(g, 'chmod 600 /exam/secret.key');
+  await run(g, 'grep -c ERROR /exam/logs/service.log > /exam/errors.count');
+  await run(g, "awk -F, '{print $2}' /exam/data/users.csv > /exam/emails.txt");
+  await run(g, "echo 'echo DONE' > /exam/run.sh");
+  await run(g, 'bash /exam/run.sh > /exam/result.txt');
+  ok('exam passed after all tasks', g.certScore === 100 && g.exam === null);
+  ok('certified achievement unlocked', g.achievements.has('certified'));
+
+  // mastery + certScore survive save/reload
+  let saved = null;
+  const storage = { load: () => saved, save: (d) => { saved = d; } };
+  const g2 = new Game({ storage });
+  g2.attachPrinter(() => {});
+  g2.init();
+  await g2.shell.exec('ls', { out: () => {}, err: () => {} });
+  g2.save();
+  const g3 = new Game({ storage });
+  g3.attachPrinter(() => {});
+  g3.init();
+  ok('mastery persists across reload', (g3.mastery.ls || 0) >= 1);
+}
+
 (async () => {
   await unitTests();
   await campaign();
   await persistenceTest();
+  await proficiencyTest();
   console.log(`\n=== ${passed} passed, ${failed} failed ===`);
   process.exit(failed ? 1 : 0);
 })();

@@ -504,6 +504,15 @@ MAN_PAGES.submit = page('submit', 6, 'Terminal Quest: submit a level flag',
   'Equivalent to the canonical form:  echo FLAG > /dev/exit', [], []);
 MAN_PAGES.progress = page('progress', 6, 'Terminal Quest: show XP, rank and achievements',
   'progress', 'Show your XP, rank, current level and unlocked achievements.', [], []);
+MAN_PAGES.skills = page('skills', 6, 'Terminal Quest: your proficiency matrix',
+  'skills',
+  'Show every core command you have learned and how much you have actually\nPRACTISED it: ○ met, ◑ used 1-2 times, ● proficient (3+ times). Proficiency\ncomes from using a command repeatedly in real situations, not from meeting it\nonce — this matrix shows where you truly stand.', [], []);
+MAN_PAGES.exam = page('exam', 6, 'Terminal Quest: OmniCorp certification exam',
+  'exam [status|quit]',
+  'Take the certification test: a fresh /exam sandbox and a checklist of real\ntasks spanning every core skill, with NO hints and NO command suggestions.\nEach task is graded automatically the moment you get it right. Passing all of\nthem certifies you as an OmniCorp Operator — genuine, demonstrated proficiency.',
+  [['status', 'review the task checklist and your progress'],
+   ['quit', 'abandon the current attempt']],
+  [['exam', 'begin the certification'], ['exam status', 'see remaining tasks']]);
 MAN_PAGES.chgrp = page('chgrp', 1, 'change group ownership', 'chgrp [-R] GROUP FILE...',
   'Change the group of each FILE. You may set it to any group you belong to on\nfiles you own; root may set any group.', [['-R', 'recurse into directories']],
   [['chgrp devteam /srv/shared', 'hand the directory to the devteam group']]);
