@@ -1,0 +1,252 @@
+/* Terminal Quest — classic-game terminal aesthetics
+   Green phosphor + cyan/amber accents, framed panels, CRT glow. */
+
+:root {
+  --green: #35f58e;
+  --green-soft: #7dffb8;
+  --green-dim: #17c265;
+  --panel: #0c3f1e;
+  --cyan: #5fd6ff;
+  --blue: #7fb0ff;
+  --amber: #ffc247;
+  --red: #ff6b6b;
+  --magenta: #c78bff;
+  --bg: #030805;
+  --bg2: #061710;
+  --line: #123f24;
+  /* A generous monospace stack — first installed wins. Fira/Cascadia/JetBrains
+     give the game a modern coding-font feel; the rest are safe fallbacks. */
+  --font: "JetBrains Mono", "Cascadia Mono", "Cascadia Code", "Fira Code",
+          "IBM Plex Mono", "Source Code Pro", "Roboto Mono", "DejaVu Sans Mono",
+          Consolas, "Courier New", monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { height: 100%; }
+body {
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(28,120,60,0.18), transparent 60%),
+    var(--bg);
+  color: var(--green);
+  font-family: var(--font);
+  overflow: hidden;
+  user-select: none;
+  letter-spacing: 0.3px;
+}
+
+/* ---- title bar ---- */
+#titlebar {
+  flex: 0 0 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(#0e2417, #05100a);
+  border-bottom: 1px solid var(--line);
+  padding: 0 10px;
+  -webkit-app-region: drag;
+  font-size: 12px;
+  color: #8effc0;
+  text-shadow: 0 0 6px rgba(43,255,136,0.4);
+}
+.tb-title { font-weight: 700; letter-spacing: 1px; }
+.tb-controls { -webkit-app-region: no-drag; display: flex; gap: 6px; }
+.tb-controls button {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: #8effc0;
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 3px 9px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background .15s, box-shadow .15s;
+}
+.tb-controls button:hover { background: var(--panel); box-shadow: 0 0 8px rgba(43,255,136,0.35); }
+#btn-compendium { color: var(--amber); border-color: #4a3a10; }
+#btn-close:hover { background: #4a1414; border-color: var(--red); color: #ffbbbb; box-shadow: 0 0 8px rgba(255,93,93,0.4); }
+
+/* ---- stage ---- */
+#stage { display: flex; flex: 1 1 auto; min-height: 0; }
+
+#terminal-wrap {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* CRT scanlines + vignette + very subtle flicker */
+#terminal-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background:
+    repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(0,25,10,0.18) 3px),
+    radial-gradient(140% 120% at 50% 50%, transparent 60%, rgba(0,0,0,0.5) 100%);
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+  animation: crt-flicker 5.5s infinite steps(1);
+}
+/* a single bright scanline slowly sweeping down the screen */
+#terminal-wrap::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  height: 90px;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(53,245,142,0.05) 45%, rgba(53,245,142,0.09) 50%, rgba(53,245,142,0.05) 55%, transparent);
+  animation: crt-sweep 7s linear infinite;
+}
+@keyframes crt-flicker {
+  0%, 100% { opacity: 0.5; }
+  49% { opacity: 0.5; }
+  50% { opacity: 0.56; }
+  51% { opacity: 0.5; }
+  92% { opacity: 0.5; }
+  93% { opacity: 0.46; }
+  94% { opacity: 0.5; }
+}
+@keyframes crt-sweep {
+  0% { top: -90px; }
+  100% { top: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #terminal-wrap::after { animation: none; }
+  #terminal-wrap::before { display: none; }
+}
+
+#screen {
+  height: 100%;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 1.4;
+  outline: none;
+  text-shadow: 0 0 4px rgba(53,245,142,0.35);
+  user-select: text;
+  scrollbar-width: thin;
+  scrollbar-color: var(--green-dim) transparent;
+}
+#screen::-webkit-scrollbar { width: 10px; }
+#screen::-webkit-scrollbar-thumb { background: var(--panel); border-radius: 5px; }
+#screen::-webkit-scrollbar-thumb:hover { background: var(--green-dim); }
+
+.input-line { white-space: pre-wrap; word-break: break-word; }
+
+.cursor {
+  display: inline-block;
+  width: 9px;
+  height: 1.05em;
+  vertical-align: bottom;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: blink 1.05s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ---- compendium ---- */
+#compendium {
+  width: 330px;
+  border-left: 1px solid var(--line);
+  background: linear-gradient(#04160c, #020a06);
+  padding: 12px 14px;
+  overflow-y: auto;
+  font-size: 12px;
+  color: #a6ffcc;
+}
+#compendium.hidden { display: none; }
+#compendium h2 {
+  font-size: 14px; margin: 0 0 10px; color: var(--green);
+  letter-spacing: 1.5px; text-shadow: 0 0 8px rgba(43,255,136,0.4);
+}
+#compendium h3 { font-size: 12px; margin: 14px 0 6px; color: var(--amber); border-bottom: 1px solid var(--line); padding-bottom: 3px; letter-spacing: 1px; }
+#compendium ul { list-style: none; margin: 0; padding: 0; }
+#compendium li { padding: 2px 0; }
+#compendium li code { color: var(--cyan); font-weight: 700; }
+#compendium li .desc { color: #6bbf8c; }
+#compendium li .m-new { color: #4a6b57; }
+#compendium li .m-fam { color: var(--amber); }
+#compendium li .m-pro { color: var(--green); text-shadow: 0 0 6px rgba(53,245,142,0.5); }
+.rank-box { background: #061a0d; border: 1px solid var(--line); border-radius: 6px; padding: 10px; box-shadow: inset 0 0 12px rgba(43,255,136,0.08); }
+#rank-name { font-weight: 700; color: var(--amber); font-size: 15px; letter-spacing: 1px; text-shadow: 0 0 8px rgba(255,207,63,0.4); }
+.xp-bar { height: 9px; background: #0a1a0f; border-radius: 5px; margin: 7px 0 4px; overflow: hidden; border: 1px solid var(--line); }
+#xp-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #0f9d4e, var(--green), var(--cyan)); transition: width .4s; box-shadow: 0 0 10px rgba(43,255,136,0.5); }
+#xp-label { font-size: 11px; color: #6bbf8c; }
+#level-box { margin-top: 10px; font-size: 12px; color: #a6ffcc; }
+#level-box .lv-name { color: var(--cyan); font-weight: 700; }
+.ach-locked { color: #3f5c4b; }
+.ach-got { color: var(--amber); }
+.hint-foot { color: #3f5c4b; margin-top: 16px; font-size: 11px; }
+.hint-foot code { color: #8effc0; }
+
+/* ---- suggestion bar ---- */
+#suggestions {
+  flex: 0 0 auto;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: linear-gradient(#0b2416, #061710);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+#suggestions::-webkit-scrollbar { display: none; }
+#suggestions.hidden { display: none; }
+.sug-label {
+  flex: 0 0 auto;
+  color: var(--amber);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(255,207,63,0.35);
+}
+#sug-chips { display: flex; gap: 8px; flex: 1 1 auto; flex-wrap: nowrap; }
+.chip {
+  flex: 0 0 auto;
+  background: #08240f;
+  border: 1px solid var(--green-dim);
+  color: var(--green);
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .12s, box-shadow .12s, transform .08s;
+}
+.chip:hover, .chip:focus { background: var(--panel); box-shadow: 0 0 10px rgba(43,255,136,0.45); outline: none; }
+.chip:active { transform: translateY(1px); }
+.chip .chip-desc { color: #6bbf8c; margin-left: 6px; font-size: 10px; }
+
+/* ---- status bar ---- */
+#statusbar {
+  flex: 0 0 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: linear-gradient(#04160c, #020a06);
+  border-top: 1px solid var(--line);
+  padding: 0 12px;
+  font-size: 11px;
+  color: #6bbf8c;
+}
+#statusbar span b { color: var(--green); }
+#sb-rank { color: var(--amber); font-weight: 700; letter-spacing: 0.5px; }
+#sb-xp { color: var(--cyan); }
+#sb-level { color: var(--magenta); }
+.sb-tip { margin-left: auto; color: #3f5c4b; }

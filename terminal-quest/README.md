@@ -48,6 +48,18 @@ npm run dist      :: -> release\TerminalQuest-Setup-1.0.0.exe  (electron-builder
 Or via Inno Setup: `npm run dist:unpacked` then compile
 [`installer/terminal-quest.iss`](installer/terminal-quest.iss).
 
+## Build the Android APK
+
+The `android-app/` folder is a standard, dependency-free Gradle project — the
+game is pre-bundled into its assets, so **no Node/npm is needed to build the
+APK**. Open `android-app/` in Android Studio (or Antigravity) and run
+`assembleDebug`. Full instructions: [`android-app/ANDROID.md`](android-app/ANDROID.md).
+
+On the phone, a hidden-input bridge drives the soft keyboard and a key toolbar
+provides Ctrl / Tab / arrows / `|` / `>` / Enter. Saves persist via WebView
+localStorage. The exact bundle the APK ships is boot-tested headlessly by
+`node test/webbundle.js` (part of `npm test`).
+
 ---
 
 ## How to play

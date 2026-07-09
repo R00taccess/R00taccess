@@ -1,0 +1,33 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.omnicorp.terminalquest'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.omnicorp.terminalquest"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        release {
+            // no code shrinking needed — there is no library code to shrink
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// Deliberately no dependencies: the app is a plain Activity + WebView, so the
+// only thing Gradle downloads is the Android Gradle Plugin itself.
+dependencies {
+}

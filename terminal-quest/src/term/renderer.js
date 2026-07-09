@@ -88,7 +88,9 @@ function scrollToBottom() { screen.scrollTop = screen.scrollHeight; }
 // ---- game ------------------------------------------------------------------
 
 const game = new Game({ storage });
-game.exportDir = saveDir; // real-filesystem home for the exported cheatsheet
+// real-filesystem home for the exported cheatsheet (desktop only — on Android
+// the in-game ~/cheatsheet.md copy is the deliverable)
+game.exportDir = window.TQ_PLATFORM === 'android' ? null : saveDir;
 game.history = history.slice();
 game.attachPrinter(writeRaw);
 game.onStateChange = () => { refreshCompendium(); refreshSuggestions(); };
@@ -242,8 +244,10 @@ function commonPrefix(arr) {
 }
 
 // ---- keyboard --------------------------------------------------------------
+// handleKeyEvent is the single entry point for keystrokes: real keydown events
+// AND synthetic ones from the mobile toolbar (window.TQ.pressKey).
 
-screen.addEventListener('keydown', (e) => {
+function handleKeyEvent(e) {
   if (busy) { e.preventDefault(); return; }
 
   if (e.key === 'F1') { e.preventDefault(); toggleCompendium(); return; }
@@ -318,7 +322,43 @@ screen.addEventListener('keydown', (e) => {
       }
   }
   renderInputLine();
-});
+}
+
+screen.addEventListener('keydown', handleKeyEvent);
+
+// Public input API for non-keyboard front-ends (Android toolbar + soft
+// keyboard bridge). Same code paths as physical typing.
+window.TQ = {
+  insertText(text) {
+    if (busy || !text) return;
+    text = String(text).replace(/\r/g, '');
+    const parts = text.split('\n');
+    currentInput = currentInput.slice(0, cursorPos) + parts[0] + currentInput.slice(cursorPos);
+    cursorPos += parts[0].length;
+    renderInputLine();
+    if (parts.length > 1) {
+      (async () => {
+        for (let i = 0; i < parts.length - 1; i++) {
+          await submitLine();
+          currentInput = parts[i + 1] || '';
+          cursorPos = currentInput.length;
+          renderInputLine();
+        }
+      })();
+    }
+  },
+  pressKey(key, mods = {}) {
+    handleKeyEvent({
+      key,
+      ctrlKey: !!mods.ctrl,
+      metaKey: false,
+      altKey: false,
+      preventDefault() {}
+    });
+  },
+  isBusy() { return busy; },
+  toggleCompendium() { toggleCompendium(); }
+};
 
 screen.addEventListener('paste', (e) => {
   if (busy) return;

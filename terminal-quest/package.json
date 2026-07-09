@@ -8,7 +8,9 @@
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "test": "node test/smoke.js",
+    "test": "node test/smoke.js && node test/webbundle.js",
+    "build:web": "node scripts/build-web.js",
+    "icons:android": "node scripts/make-android-icons.js",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --win nsis",
     "dist:unpacked": "electron-builder --win dir"

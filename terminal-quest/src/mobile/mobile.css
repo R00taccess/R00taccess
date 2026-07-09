@@ -1,0 +1,79 @@
+/* Terminal Quest — Android overrides (loaded after style.css) */
+
+/* window-control buttons make no sense in an APK */
+.desktop-only { display: none !important; }
+
+/* comfortable touch text size */
+#screen { font-size: 13px; line-height: 1.45; -webkit-tap-highlight-color: transparent; }
+
+/* compendium becomes a full-width overlay on narrow screens */
+@media (max-width: 700px) {
+  #compendium {
+    position: fixed;
+    inset: 32px 0 0 0;
+    width: 100%;
+    z-index: 30;
+    border-left: none;
+  }
+}
+
+/* suggestion chips: bigger touch targets */
+.chip { padding: 9px 14px; font-size: 13px; }
+#suggestions { min-height: 52px; }
+
+/* ---- key toolbar ---- */
+#keybar {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+  padding: 7px 8px;
+  background: linear-gradient(#0b2416, #061710);
+  border-top: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+#keybar::-webkit-scrollbar { display: none; }
+#keybar button {
+  flex: 0 0 auto;
+  min-width: 44px;
+  padding: 10px 12px;
+  background: #08240f;
+  border: 1px solid var(--green-dim);
+  border-radius: 8px;
+  color: var(--green);
+  font-family: var(--font);
+  font-size: 14px;
+  -webkit-tap-highlight-color: transparent;
+}
+#keybar button:active { background: var(--panel); }
+#keybar #kb-ctrl.armed {
+  background: var(--green-dim);
+  color: #031007;
+  box-shadow: 0 0 10px rgba(53, 245, 142, 0.6);
+}
+#keybar #kb-enter { border-color: var(--amber); color: var(--amber); }
+
+/* hidden input that summons the soft keyboard — must stay focusable */
+#softkb {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  height: 4px;
+  opacity: 0.01;
+  border: none;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  z-index: -1;
+}
+
+/* statusbar: drop the desktop tip text on small screens */
+@media (max-width: 700px) {
+  .sb-tip { display: none; }
+  #statusbar { gap: 12px; }
+}
+
+/* calmer effects on mobile GPUs / battery */
+#terminal-wrap::before { display: none; }
+#terminal-wrap::after { animation: none; opacity: 0.35; }

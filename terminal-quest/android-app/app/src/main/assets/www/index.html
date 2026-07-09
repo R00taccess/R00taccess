@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Terminal Quest</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="mobile.css">
+  <script>window.TQ_PLATFORM = 'android';</script>
+</head>
+<body>
+  <div id="titlebar">
+    <span class="tb-title">● Terminal Quest — player@omnicorp</span>
+    <span class="tb-controls">
+      <button id="btn-compendium" title="Command Compendium">Compendium</button>
+      <button id="btn-min" class="desktop-only" title="Minimize">—</button>
+      <button id="btn-max" class="desktop-only" title="Maximize">▢</button>
+      <button id="btn-close" class="desktop-only" title="Close">✕</button>
+    </span>
+  </div>
+
+  <div id="stage">
+    <div id="terminal-wrap">
+      <div id="screen" tabindex="0" spellcheck="false"></div>
+    </div>
+
+    <aside id="compendium" class="hidden">
+      <h2>Command Compendium</h2>
+      <div class="rank-box">
+        <div id="rank-name">Trainee</div>
+        <div class="xp-bar"><div id="xp-fill"></div></div>
+        <div id="xp-label">0 XP</div>
+      </div>
+      <div id="level-box"></div>
+      <h3>Commands learned</h3>
+      <ul id="cmd-list"></ul>
+      <h3>Achievements</h3>
+      <ul id="ach-list"></ul>
+      <p class="hint-foot">Type <code>man &lt;command&gt;</code> for full details.</p>
+    </aside>
+  </div>
+
+  <div id="suggestions" class="hidden">
+    <span class="sug-label">◂ SUGGESTED ▸</span>
+    <div id="sug-chips"></div>
+  </div>
+
+  <!-- Android key toolbar: keys a soft keyboard can't type reliably -->
+  <div id="keybar">
+    <button data-key="Control" id="kb-ctrl">Ctrl</button>
+    <button data-key="Tab">Tab</button>
+    <button data-key="ArrowUp">▲</button>
+    <button data-key="ArrowDown">▼</button>
+    <button data-key="ArrowLeft">◀</button>
+    <button data-key="ArrowRight">▶</button>
+    <button data-text="|">|</button>
+    <button data-text=">">&gt;</button>
+    <button data-text="~">~</button>
+    <button data-text="-">-</button>
+    <button data-text="/">/</button>
+    <button data-key="Escape">Esc</button>
+    <button data-key="Enter" id="kb-enter">Enter ⏎</button>
+  </div>
+
+  <div id="statusbar">
+    <span id="sb-prompt">player@omnicorp</span>
+    <span id="sb-rank">Trainee</span>
+    <span id="sb-xp">0 XP</span>
+    <span id="sb-level">Level 1</span>
+    <span id="sb-clock">Mon 09:00</span>
+    <span class="sb-tip">type <b>help</b></span>
+  </div>
+
+  <!-- invisible input that summons the Android soft keyboard -->
+  <input id="softkb" type="text" autocomplete="off" autocorrect="off"
+         autocapitalize="off" spellcheck="false" aria-hidden="true">
+
+  <script src="bundle.js"></script>
+  <script src="mobile.js"></script>
+</body>
+</html>
