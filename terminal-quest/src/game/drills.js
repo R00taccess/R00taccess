@@ -236,14 +236,18 @@ const DRILL_GENERATORS = [
   }
 ];
 
-// Pick a generator, biased hard toward the player's weakest relevant skills.
+// Pick a generator, biased hard toward the player's weakest relevant skills,
+// with a spaced-repetition bonus for "rusty" ones (practised before, but not
+// touched for a long stretch of play).
 function pickDrill(game, rng) {
   const learned = new Set(game.learnedCommands());
   const eligible = DRILL_GENERATORS.filter(d => d.skills.some(s => learned.has(s)));
   const pool = eligible.length ? eligible : DRILL_GENERATORS.slice(0, 6);
   const weight = (d) => {
     const m = Math.min(...d.skills.map(s => game.mastery[s] || 0));
-    return m >= 3 ? 1 : m >= 1 ? 3 : 6; // unpractised skills 6× more likely
+    let w = m >= 3 ? 1 : m >= 1 ? 3 : 6; // unpractised skills 6× more likely
+    if (game.isRusty && d.skills.some(s => game.isRusty(s))) w += 4;
+    return w;
   };
   const total = pool.reduce((s, d) => s + weight(d), 0);
   let roll = rng() * total;

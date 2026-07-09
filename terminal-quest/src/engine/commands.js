@@ -1598,6 +1598,7 @@ C.help = (ctx) => {
   ctx.out('  skills          your mastery matrix — what you have really practised\n');
   ctx.out('  drill           a quick practice task aimed at your weakest skills\n');
   ctx.out('  exam            the unaided certification test (after you finish)\n');
+  ctx.out('  cheatsheet      export your personal field manual to a real file\n');
   ctx.out('  resetlevel      rebuild this level if you broke something\n');
   ctx.out('  F1              toggle the Command Compendium panel\n');
   ctx.out('Solve a level by finding its flag, then run:  echo THE_FLAG > /dev/exit\n');
@@ -1618,6 +1619,8 @@ C.drill = (ctx, args) => {
   if (ctx.game.drill) return ctx.game.showDrillStatus(ctx);
   return ctx.game.startDrill(ctx);
 };
+C.cheatsheet = (ctx) => ctx.game.exportCheatsheet(ctx);
+C.graduate = C.cheatsheet;
 C.tutorial = (ctx) => ctx.game.showTutorial(ctx);
 C.mission = (ctx) => ctx.game.showBriefing(ctx);
 C.resetlevel = (ctx) => ctx.game.resetLevel(ctx);

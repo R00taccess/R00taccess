@@ -196,6 +196,7 @@ class Game {
     this.certScore = null;   // best certification score achieved (%)
     this.drill = null;       // active practice drill, or null
     this.drillsCompleted = 0;
+    this.lastUsed = {};      // command name -> totalCommands index of last correct use
 
     // per-level trackers
     this.hintsUsed = 0;
@@ -240,6 +241,7 @@ class Game {
       this.mastery = save.mastery || {};
       this.certScore = save.certScore != null ? save.certScore : null;
       this.drillsCompleted = save.drillsCompleted || 0;
+      this.lastUsed = save.lastUsed || {};
     }
     this.rebuildWorld();
     this.shell = new Shell({ vfs: this.vfs, game: this, commands, user: this.playerUser() });
@@ -294,7 +296,8 @@ class Game {
       gameMinutes: this.gameMinutes,
       mastery: this.mastery,
       certScore: this.certScore,
-      drillsCompleted: this.drillsCompleted
+      drillsCompleted: this.drillsCompleted,
+      lastUsed: this.lastUsed
     });
   }
 
@@ -445,7 +448,9 @@ class Game {
   }
 
   // Suggestions shown for beginner levels; fade out as the player levels up.
+  // Never shown during a drill or the certification exam — those are unaided.
   currentSuggestions() {
+    if (this.exam || this.drill) return [];
     const lvl = this.level();
     if (!lvl) return [];
     return (LEVEL_SUGGESTIONS[lvl.id] || []);
@@ -460,6 +465,14 @@ class Game {
   }
 
   giveHint(ctx) {
+    if (this.exam) {
+      ctx.out('\x1b[33mThe proctor looks up slowly and shakes her head. No hints during\ncertification — that is the whole point. (exam quit to abandon.)\x1b[0m\n');
+      return;
+    }
+    if (this.drill) {
+      ctx.out('\x1b[33mDrills are unaided practice — no hints. If it is too hard right now,\n\x1b[0m\x1b[1;35mdrill quit\x1b[0m\x1b[33m costs nothing and the level hints still work.\x1b[0m\n');
+      return;
+    }
     const lvl = this.level();
     if (this.hintStep >= lvl.hints.length) {
       ctx.out('\x1b[33mNo more hints for this level — you have everything you need.\x1b[0m\n');
@@ -545,7 +558,8 @@ class Game {
     this.unlock('root-wizard');
     out('\x1b[1;36m  ▸ ONE THING LEFT:\x1b[0m the certification. Prove your skills with no hints,\n');
     out('    no suggestions — type \x1b[1;33mexam\x1b[0m to take the OmniCorp Operator test.\n');
-    out('    Type \x1b[1;33mskills\x1b[0m for your mastery matrix, \x1b[1;33mdrill\x1b[0m to sharpen weak spots first.\n\n');
+    out('    Type \x1b[1;33mskills\x1b[0m for your mastery matrix, \x1b[1;33mdrill\x1b[0m to sharpen weak spots first,\n');
+    out('    and \x1b[1;33mcheatsheet\x1b[0m to export your personal field manual for the real world.\n\n');
     this.changed();
   }
 
@@ -609,10 +623,21 @@ class Game {
   noteMastery(name, code) {
     if (code !== 0 || !CORE_SKILLS.has(name)) return;
     this.mastery[name] = (this.mastery[name] || 0) + 1;
+    this.lastUsed[name] = this.totalCommands;
     const distinct = Object.keys(this.mastery).length;
     if (distinct >= 20) this.unlock('journeyman');
     const proficient = Object.values(this.mastery).filter(n => n >= 3).length;
     if (proficient >= 15) this.unlock('fluent');
+  }
+
+  // A skill is "rusty" when it was practised before but hasn't been touched
+  // for a long stretch of play — spaced repetition targets exactly these.
+  isRusty(name) {
+    const n = this.mastery[name] || 0;
+    if (n === 0) return false;
+    const last = this.lastUsed[name];
+    if (last === undefined) return false;
+    return this.totalCommands - last >= 80;
   }
 
   masteryTier(count) { return count >= 3 ? 2 : count >= 1 ? 1 : 0; }
@@ -621,15 +646,17 @@ class Game {
     const learned = this.learnedCommands().filter(c => CORE_SKILLS.has(c));
     const dots = ['\x1b[90m○ new\x1b[0m', '\x1b[33m◑ familiar\x1b[0m', '\x1b[1;32m● proficient\x1b[0m'];
     ctx.out('\n\x1b[1m── SKILLS MATRIX — what you have actually practised ──\x1b[0m\n');
-    ctx.out('  \x1b[90m○ met it\x1b[0m   \x1b[33m◑ used it 1-2×\x1b[0m   \x1b[1;32m● proficient (3+×)\x1b[0m\n\n');
+    ctx.out('  \x1b[90m○ met it\x1b[0m   \x1b[33m◑ used it 1-2×\x1b[0m   \x1b[1;32m● proficient (3+×)\x1b[0m   \x1b[35m◌ rusty\x1b[0m\n\n');
     if (!learned.length) { ctx.out('  (no core commands learned yet)\n\n'); return; }
-    let prof = 0, fam = 0;
+    let prof = 0, fam = 0, rusty = 0;
     const cols = 3;
     const cells = learned.map(c => {
       const n = this.mastery[c] || 0;
       const t = this.masteryTier(n);
       if (t === 2) prof++; else if (t === 1) fam++;
-      const mark = t === 2 ? '\x1b[1;32m●' : t === 1 ? '\x1b[33m◑' : '\x1b[90m○';
+      const isRusty = this.isRusty(c);
+      if (isRusty) rusty++;
+      const mark = isRusty ? '\x1b[35m◌' : t === 2 ? '\x1b[1;32m●' : t === 1 ? '\x1b[33m◑' : '\x1b[90m○';
       return `${mark} ${c.padEnd(12)} ${String(n).padStart(2)}×\x1b[0m`;
     });
     for (let i = 0; i < cells.length; i += cols) {
@@ -639,6 +666,9 @@ class Game {
     const pct = Math.round((prof / total) * 100);
     ctx.out(`\n  Proficient: \x1b[1;32m${prof}\x1b[0m/${total}   Familiar: \x1b[33m${fam}\x1b[0m   ` +
             `Mastery: \x1b[1;36m${pct}%\x1b[0m\n`);
+    if (rusty) {
+      ctx.out(`  \x1b[35m◌ ${rusty} skill${rusty > 1 ? 's are' : ' is'} getting rusty\x1b[0m \x1b[90m(not used in a while — \x1b[0m\x1b[1;35mdrill\x1b[0m\x1b[90m targets these first)\x1b[0m\n`);
+    }
     if (this.finished) {
       ctx.out(`  \x1b[90mReady for the finish line — type \x1b[0m\x1b[1;33mexam\x1b[0m\x1b[90m for the certification test.\x1b[0m\n`);
     }
@@ -754,6 +784,83 @@ class Game {
   showDrillStatus(ctx) {
     if (!this.drill) { ctx.out('No drill in progress. Type \x1b[1;35mdrill\x1b[0m to start one.\n'); return; }
     ctx.out(`\x1b[1;35mCurrent drill\x1b[0m \x1b[90m(targets: ${this.drill.skills.join(', ')})\x1b[0m\n  ${this.drill.prompt}\n`);
+  }
+
+  // ---- graduation cheat sheet --------------------------------------------------
+  // A personalized reference the player takes with them to a real terminal:
+  // every command they learned, their own usage counts, and the key ideas.
+
+  buildCheatsheet() {
+    const { MAN_PAGES } = require('./man');
+    const lines = [];
+    lines.push('# Terminal Quest — Personal Linux Field Manual');
+    lines.push('');
+    lines.push(`Generated for **${this.shell ? this.shell.user.name : 'player'}** · rank **${this.rank()}**` +
+      ` · ${this.xp} XP · ${this.totalCommands} commands run` +
+      (this.certScore != null ? ` · **Certified Operator (${this.certScore}%)**` : ''));
+    lines.push('');
+    lines.push('Everything below works identically on real Linux. This sheet lists only');
+    lines.push('what YOU learned and practised in the game.');
+    lines.push('');
+    lines.push('## The big ideas');
+    lines.push('');
+    for (let i = 0; i < this.levels.length && i <= this.levelIndex; i++) {
+      const idea = KEY_IDEAS[this.levels[i].id];
+      if (idea) lines.push(`- ${idea}`);
+    }
+    lines.push('');
+    lines.push('## Your commands');
+    lines.push('');
+    lines.push('| Command | Practised | One-liner |');
+    lines.push('|---------|-----------|-----------|');
+    for (const c of this.learnedCommands()) {
+      if (!CORE_SKILLS.has(c)) continue;
+      const n = this.mastery[c] || 0;
+      const tier = n >= 3 ? '● proficient' : n >= 1 ? '◑ familiar' : '○ not yet practised';
+      let one = '';
+      const man = MAN_PAGES[c];
+      if (man) {
+        const m = /- (.*)/.exec(man.replace(/\x1b\[[0-9;]*m/g, '').split('\n')[3] || '');
+        one = m ? m[1] : '';
+      }
+      lines.push(`| \`${c}\` | ${tier} (${n}×) | ${one} |`);
+    }
+    lines.push('');
+    lines.push('## Recipes worth memorising');
+    lines.push('');
+    lines.push('```bash');
+    lines.push('sort file | uniq -c | sort -nr | head    # what is most common?');
+    lines.push('grep -rn "needle" /haystack              # find text in a tree');
+    lines.push('find /path -name "*.log" -mtime +30      # old files (add -delete carefully)');
+    lines.push('df -h && du -sh /var/*                   # disk full? that -> where');
+    lines.push('ps aux | grep name                       # find a process, then: kill PID');
+    lines.push('chmod 750 dir ; chmod 600 secret         # lock things down');
+    lines.push('tail -n 50 /var/log/syslog               # what just happened?');
+    lines.push('crontab -l                               # what runs on a schedule?');
+    lines.push('```');
+    lines.push('');
+    lines.push('Go be dangerous (responsibly). — Alex');
+    lines.push('');
+    return lines.join('\n');
+  }
+
+  exportCheatsheet(ctx) {
+    const content = this.buildCheatsheet();
+    // always place a copy inside the game world too
+    this.vfs.put('/home/player/cheatsheet.md', content, { owner: 'player' });
+    let where = '~/cheatsheet.md (in-game)';
+    if (this.exportDir) {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const dest = path.join(this.exportDir, 'terminal-quest-cheatsheet.md');
+        fs.writeFileSync(dest, content);
+        where = dest + '  (on your real computer!)';
+      } catch (e) { /* keep the in-game copy only */ }
+    }
+    ctx.out('\x1b[1;32mYour personal field manual has been written.\x1b[0m\n');
+    ctx.out(`  ${where}\n`);
+    ctx.out('  \x1b[90m(also saved in-game at ~/cheatsheet.md — cat it anytime)\x1b[0m\n');
   }
 
   notePipeline(stages) {

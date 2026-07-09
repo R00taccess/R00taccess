@@ -90,11 +90,14 @@ work. Four systems target that directly:
   `skills` command (and the F1 compendium's ○/◑/● dots) shows your personal
   matrix: *met it* → *familiar (1–2×)* → *proficient (3+×)*. You can see
   exactly which tools you've only read about versus genuinely practised.
-- **Practice drills.** `drill` generates a short randomized task in a fresh
-  `/drill` sandbox — and the picker reads your mastery matrix, so it aims at
-  your **weakest** skills (commands you've barely used are up to 6× more likely
-  to come up). No hints, small XP, infinitely repeatable: this is how "met it
-  once" becomes muscle memory.
+- **Practice drills with spaced repetition.** `drill` generates a short
+  randomized task in a fresh `/drill` sandbox — and the picker reads your
+  mastery matrix, so it aims at your **weakest** skills (commands you've barely
+  used are up to 6× more likely to come up), plus a bonus for **rusty** ones
+  (practised before, but untouched for a long stretch of play — flagged ◌ in
+  `skills`). No hints, small XP, infinitely repeatable: this is how "met it
+  once" becomes muscle memory. Hints and suggestion chips are disabled during
+  drills and the exam, so unaided means unaided.
 - **The certification exam.** After the campaign (or anytime, with `exam`),
   you get a fresh `/exam` sandbox and a checklist of 11 applied tasks covering
   every core skill — files, pipelines, grep/find, permissions, processes,
@@ -103,8 +106,15 @@ work. Four systems target that directly:
   it earns the *Certified Operator* achievement. That's the game's actual
   definition of "proficient": you did it unaided.
 
+- **The field manual.** `cheatsheet` (alias `graduate`) exports a personalized
+  Markdown reference — the key ideas from every level you cleared, each command
+  with *your own* practice counts, and the recipes worth memorising — both
+  in-game (`~/cheatsheet.md`) and as a **real file** next to your save data, to
+  keep open beside a real terminal.
+
 Together they form the loop the game is built around: **learn** (levels with
-key ideas) → **practice** (drills on your weak spots) → **certify** (the exam).
+key ideas) → **practice** (drills on your weak spots) → **certify** (the exam)
+→ **graduate** (take your field manual to real Linux).
 
 Each level ends by capturing a **flag** — a secret token you find by using the
 level's commands correctly. Submit it with:

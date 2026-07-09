@@ -507,6 +507,11 @@ MAN_PAGES.progress = page('progress', 6, 'Terminal Quest: show XP, rank and achi
 MAN_PAGES.skills = page('skills', 6, 'Terminal Quest: your proficiency matrix',
   'skills',
   'Show every core command you have learned and how much you have actually\nPRACTISED it: ○ met, ◑ used 1-2 times, ● proficient (3+ times). Proficiency\ncomes from using a command repeatedly in real situations, not from meeting it\nonce — this matrix shows where you truly stand.', [], []);
+MAN_PAGES.cheatsheet = page('cheatsheet', 6, 'Terminal Quest: export your personal field manual',
+  'cheatsheet',
+  'Generate a Markdown reference of everything YOU learned: the key ideas from\neach level, every command with your own practice counts, and the recipes worth\nmemorising. Written to ~/cheatsheet.md in-game AND to a real file next to your\nsave data, so you can keep it open beside a real terminal. Alias: graduate.',
+  [], [['cheatsheet', 'write the manual'], ['cat ~/cheatsheet.md', 'read it in-game']]);
+MAN_PAGES.graduate = MAN_PAGES.cheatsheet;
 MAN_PAGES.drill = page('drill', 6, 'Terminal Quest: targeted practice drills',
   'drill [status|quit]',
   'Generate a short, randomized practice task in a fresh /drill sandbox. The\npicker reads your mastery matrix (see: skills) and aims at your WEAKEST\nskills — commands you have met but barely used are up to six times more\nlikely to come up. Drills are graded by the resulting system state, so any\nvalid approach passes. No hints, small XP, repeat as often as you like:\nthis is how "met it once" becomes muscle memory.',

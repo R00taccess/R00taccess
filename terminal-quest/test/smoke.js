@@ -323,6 +323,39 @@ async function proficiencyTest() {
   await run(g, 'chmod 600 /drill/vault.key');
   ok('drill auto-grades on success', g.drill === null && g.drillsCompleted === beforeDrills + 1);
 
+  // exam/drill integrity: no suggestions, no hints while testing
+  const g4 = makeGame();
+  ok('suggestions visible normally', g4.currentSuggestions().length > 0);
+  await run(g4, 'exam');
+  ok('suggestions hidden during exam', g4.currentSuggestions().length === 0);
+  const hintOut = stripAnsi(await run(g4, 'hint'));
+  ok('hint refused during exam', hintOut.includes('No hints during') && g4.hintsUsed === 0);
+  await run(g4, 'exam quit');
+  ok('exam quit removes exam-hog', !g4.procs.some(p => /exam-hog/.test(p.cmd)));
+  ok('suggestions return after exam', g4.currentSuggestions().length > 0);
+
+  // spaced repetition: a practised-then-neglected skill turns rusty
+  const g5 = makeGame();
+  await run(g5, 'pwd');
+  ok('fresh skill not rusty', !g5.isRusty('pwd'));
+  g5.totalCommands += 100; // simulate a long stretch of play without pwd
+  ok('neglected skill turns rusty', g5.isRusty('pwd'));
+  ok('never-used skill never rusty', !g5.isRusty('awk'));
+
+  // cheatsheet export: in-game copy + real-file copy
+  const os = require('os');
+  const pathmod = require('path');
+  const fsmod = require('fs');
+  const tmpdir = fsmod.mkdtempSync(pathmod.join(os.tmpdir(), 'tq-test-'));
+  g5.exportDir = tmpdir;
+  const sheetOut = stripAnsi(await run(g5, 'cheatsheet'));
+  ok('cheatsheet announces export', sheetOut.includes('field manual'));
+  const inGame = stripAnsi(await run(g5, 'cat /home/player/cheatsheet.md'));
+  ok('cheatsheet exists in-game', inGame.includes('Personal Linux Field Manual') && inGame.includes('pwd'));
+  const real = fsmod.readFileSync(pathmod.join(tmpdir, 'terminal-quest-cheatsheet.md'), 'utf8');
+  ok('cheatsheet exported to real file', real.includes('Recipes worth memorising'));
+  fsmod.rmSync(tmpdir, { recursive: true, force: true });
+
   // mastery + certScore survive save/reload
   let saved = null;
   const storage = { load: () => saved, save: (d) => { saved = d; } };

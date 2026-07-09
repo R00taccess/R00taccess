@@ -72,6 +72,7 @@ function scrollToBottom() { screen.scrollTop = screen.scrollHeight; }
 // ---- game ------------------------------------------------------------------
 
 const game = new Game({ storage });
+game.exportDir = saveDir; // real-filesystem home for the exported cheatsheet
 game.history = history.slice();
 game.attachPrinter(writeRaw);
 game.onStateChange = () => { refreshCompendium(); refreshSuggestions(); };
