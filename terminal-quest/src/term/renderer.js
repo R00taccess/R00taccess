@@ -6,6 +6,22 @@
  * Delegates all command execution to the game engine.
  */
 
+// Safety net: if anything below throws during load, paint the error into the
+// terminal instead of leaving a silent blank screen. Registered first so it
+// catches even a failed require().
+window.addEventListener('error', (ev) => {
+  try {
+    const s = document.getElementById('screen');
+    if (!s) return;
+    const pre = document.createElement('pre');
+    pre.style.cssText = 'color:#ff6b6b;white-space:pre-wrap;padding:10px;font-size:13px;';
+    const detail = (ev.error && ev.error.stack) || ev.message || String(ev);
+    pre.textContent = 'Terminal Quest could not start:\n\n' + detail +
+      '\n\n(If you can, screenshot this — it says exactly what went wrong.)';
+    s.appendChild(pre);
+  } catch (e) { /* nothing more we can do */ }
+});
+
 const path = require('path');
 const fs = require('fs');
 const { ipcRenderer } = require('electron');

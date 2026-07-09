@@ -17,6 +17,9 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: true,    // offline single-player game; no remote content is ever loaded
       contextIsolation: false,
+      sandbox: false,           // REQUIRED (Electron >=20): without this the renderer is
+                                // sandboxed and `require` is undefined, so renderer.js dies
+                                // on load and the terminal stays blank.
       spellcheck: false
     }
   });
